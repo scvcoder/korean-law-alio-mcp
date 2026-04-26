@@ -1,5 +1,7 @@
 # Korean Law ALIO MCP
 
+[![npm version](https://img.shields.io/npm/v/korean-law-alio-mcp.svg)](https://www.npmjs.com/package/korean-law-alio-mcp)
+[![MCP 1.27](https://img.shields.io/badge/MCP-1.27-blue)](https://modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Tools: 110](https://img.shields.io/badge/MCP%20Tools-110-blue.svg)](./docs/API.md)
 [![ALIO Coverage: 35,000+](https://img.shields.io/badge/ALIO%20Regulations-35%2C000%2B-green.svg)](#-what-this-fork-adds-vs-upstream-v22)
