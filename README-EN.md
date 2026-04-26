@@ -385,12 +385,8 @@ See [`.env.example`](./.env.example) for the full list with examples.
 | [`README-EN.md`](./README-EN.md) | English README (this document) |
 | [`README.md`](./README.md) | Korean README |
 | [`docs/API.md`](./docs/API.md) | 110-tool reference |
-| [`CLAUDE.md`](./CLAUDE.md) | Code guide for AI assistants and contributors |
-| [`ROADMAP.md`](./ROADMAP.md) | Motivation, plans, acknowledgements |
-| [`CHANGELOG.md`](./CHANGELOG.md) | Change log |
-| [`TEST-REPORT.md`](./TEST-REPORT.md) | Comprehensive test results (168 cases ALL PASS) |
 | [`LICENSE`](./LICENSE) | MIT |
-| [`NOTICE`](./NOTICE) | All dependency attributions |
+| [`NOTICE`](./NOTICE) | Sources and licenses of external libraries and data used |
 
 ---
 

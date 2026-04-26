@@ -385,12 +385,8 @@ korean-law-alio                                             # REPL (대화형)
 | [`README.md`](./README.md) | 한글 README (현재 문서) |
 | [`README-EN.md`](./README-EN.md) | 영문 README |
 | [`docs/API.md`](./docs/API.md) | 110개 도구 레퍼런스 |
-| [`CLAUDE.md`](./CLAUDE.md) | 코드 가이드 (AI 어시스턴트 + 기여자용) |
-| [`ROADMAP.md`](./ROADMAP.md) | 변경 동기 + 향후 계획 + 감사의 말 |
-| [`CHANGELOG.md`](./CHANGELOG.md) | 변경 이력 |
-| [`TEST-REPORT.md`](./TEST-REPORT.md) | 종합 테스트 결과 (168 cases ALL PASS) |
 | [`LICENSE`](./LICENSE) | MIT |
-| [`NOTICE`](./NOTICE) | 모든 의존성 attribution |
+| [`NOTICE`](./NOTICE) | 사용한 외부 라이브러리·데이터의 출처와 라이선스 표기 |
 
 ---
 
