@@ -171,8 +171,7 @@ get_law_text(mst, jo="006300") → 제63조(휴직) 조회
 
 ## Contributing
 
-자세한 기여 가이드는 [`CONTRIBUTING.md`](./CONTRIBUTING.md) — PR 체크리스트, 라이선스 호환성 정책, 영역별 변경 가이드 등 참고.
-인적 기여 감사글은 [ROADMAP.md § 감사의 말](./ROADMAP.md#-감사의-말) 참고.
+이슈/PR 환영합니다. 인적 기여 감사글은 [ROADMAP.md § 감사의 말](./ROADMAP.md#-감사의-말) 참고.
 
 ## Docs
 

@@ -113,8 +113,7 @@ v0.x 단계에서 **도구 강화**와 **안정성 강화**를 거쳐 **v1.0 안
 
 ## Contributing
 
-이슈/PR 환영합니다. 자세한 기여 가이드는 [`CONTRIBUTING.md`](./CONTRIBUTING.md) 참고.
-코드베이스 구조와 Critical Rules 는 [`CLAUDE.md`](./CLAUDE.md) 참고.
+이슈/PR 환영합니다. 코드베이스 구조와 Critical Rules 는 [`CLAUDE.md`](./CLAUDE.md) 참고.
 
 ### 🙏 감사의 말
 
