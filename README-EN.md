@@ -156,68 +156,46 @@ Add to your config file:
 
 If you already have other MCP servers configured, just add the `"korean-law-alio": { ... }` entry inside `"mcpServers": { ... }`. Restart the app.
 
-### Method 4: Install on Your Own Machine (offline · security-sensitive · data control)
+### Method 4: Install on Your Own Machine (offline-capable)
 
-Runs on your own PC without going through any remote server. You control the ALIO data. **Prereq**: Node.js version 20 or higher.
+If you want to use it without an internet connection, or to avoid going through a remote server, you can install it directly.
 
-#### 4-A. Setup wizard
+**Prerequisite:** Node.js version 20 or higher.
 
-An interactive wizard handles ① API key entry → ② operating mode (remote fly / local stdio) → ③ AI client selection (Claude Desktop · Code · Cursor · VS Code · Windsurf) → ④ config-file auto-registration.
+**Automatic install (recommended):**
 
 ```bash
-# Available today — after local git clone + build
-git clone https://github.com/scvcoder/korean-law-alio-mcp
-cd korean-law-alio-mcp && npm install && npm run build
-node build/index.js setup
-
-# Coming after npm publish — same wizard in one line
 npx korean-law-alio-mcp setup
 ```
 
-#### 4-B. Manual install (works today)
+A setup wizard handles API key entry → AI client selection (Claude Desktop · Code · Cursor · VS Code · Windsurf) → config-file auto-registration in one go.
+
+**Manual install:**
 
 ```bash
-git clone https://github.com/scvcoder/korean-law-alio-mcp
-cd korean-law-alio-mcp
-npm install && npm run build
-echo "LAW_OC=your-api-key-here" > .env
+npm install -g korean-law-alio-mcp
 ```
 
-Prepare ALIO data — pick one:
-
-```bash
-# (i) Direct sync — slower but full control (6-12 h, external tools recommended)
-#     macOS:   brew install docling tesseract tesseract-lang libreoffice
-#     Linux:   sudo apt install tesseract-ocr tesseract-ocr-kor libreoffice && pip install docling
-#     Windows: Node.js alone works (only edge cases get parseError)
-npm run alio:sync                   # all 344 institutions
-npm run alio:sync -- --only C0xxx   # single institution (apbaId 4-digit, minutes)
-
-# (ii) Use the maintainer's mirror — faster, no external tools (5-15 min, best-effort refresh)
-# macOS/Linux:
-curl -L -o alio-data.tar.gz \
-  https://github.com/scvcoder/korean-law-alio-mcp/releases/latest/download/alio-data.tar.gz
-tar -xzf alio-data.tar.gz -C data/
-# Windows (PowerShell):
-Invoke-WebRequest -Uri https://github.com/scvcoder/korean-law-alio-mcp/releases/latest/download/alio-data.zip -OutFile alio-data.zip
-Expand-Archive -Path alio-data.zip -DestinationPath data\
-```
-
-Register with your AI client in stdio mode:
+Add the following to your AI app's config file (replace `your-api-key-here` with your own key):
 
 ```json
 {
   "mcpServers": {
     "korean-law-alio": {
-      "command": "node",
-      "args": ["/absolute/path/korean-law-alio-mcp/build/index.js"],
-      "env": { "LAW_OC": "your-api-key-here" }
+      "command": "korean-law-alio-mcp",
+      "env": {
+        "LAW_OC": "your-api-key-here"
+      }
     }
   }
 }
 ```
 
-> **The data mirror is best-effort** — the Releases `tag` is the snapshot date; the `fetchedAt` field inside `manifest.json` gives the exact timestamp. For time-sensitive use, run `npm run alio:sync` to refresh from source. Any harm caused by snapshot drift is the user's responsibility. Full responsibility allocation: [`NOTICE`](./NOTICE).
+Restart the app — done!
+
+> **ALIO data preparation (optional)** — to use ALIO tools on your own PC, you also need the data. If you only use Korean Law portal tools, this is unnecessary.
+> - **Use the maintainer's mirror (5-15 min, recommended)**: `curl -L -o alio-data.tar.gz https://github.com/scvcoder/korean-law-alio-mcp/releases/latest/download/alio-data.tar.gz && tar -xzf alio-data.tar.gz -C data/`
+> - **Direct sync (6-12 h)**: `npm run alio:sync` (external tools recommended — macOS: `brew install docling tesseract tesseract-lang libreoffice`)
 
 ### Method 5: Use from the terminal (CLI)
 
