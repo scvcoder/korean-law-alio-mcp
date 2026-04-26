@@ -290,9 +290,7 @@ You can pass the API key through any of the methods below. Earlier in the table 
 
 ## Examples
 
-> The `OO Agency` / `OO Corporation` placeholders below are anonymized — replace with the actual institution name you want to query.
-
-### Korean-Law tools — laws · precedents · interpretations (87 from upstream)
+### Korean-Law tools — laws · precedents · interpretations
 
 ```
 "민법 제1조 알려줘"
@@ -301,19 +299,11 @@ You can pass the API key through any of the methods below. Earlier in the table 
 "음주운전 처벌 기준"
 → The AI auto-combines relevant statutes + precedents + interpretations
 
-"관세법 3단비교"
-→ The AI auto-analyzes the Act → Decree → Rules delegation structure
-
 "근로기준법 제74조 해석례"
 → The AI auto-matches the article + government interpretations
-
-"종로구 주차 조례"
-→ The AI searches local ordinances
 ```
 
-For richer scenarios, see [`README-EN-UPSTREAM.md`](./README-EN-UPSTREAM.md).
-
-### ALIO public-institution tools (23 new in this fork)
+### ALIO public-institution regulation tools
 
 ```
 "OO Agency's HR regulations"
@@ -324,15 +314,9 @@ For richer scenarios, see [`README-EN-UPSTREAM.md`](./README-EN-UPSTREAM.md).
 
 "Rules that peer institutions have but ours doesn't"
 → The AI auto-extracts benchmarking candidates (peers' rules − ours)
-
-"Which institutions changed HR rules in the last 3 months?"
-→ The AI auto-sorts recent revision history
-
-"What's in the ALIO data?"
-→ The AI auto-summarizes statistics across the collected dataset
 ```
 
-### Tools linking the two areas (3 new in this fork)
+### Tools that link the Korean Law portal with ALIO
 
 Public-institution internal regulations inherently delegate from / cite upper national laws. Natural-language queries that span both areas are handled automatically:
 
@@ -345,8 +329,6 @@ Public-institution internal regulations inherently delegate from / cite upper na
 → The AI reverse-searches citations of the law across 35,000 public-institution regulations
    → Returns matched directives' citation context + per-institution grouping
 ```
-
-Full 110-tool reference: [`docs/API.md`](./docs/API.md). Motivation & roadmap: [`ROADMAP.md`](./ROADMAP.md).
 
 ---
 
