@@ -12,23 +12,56 @@
 
 1,600 법률, 10,000 행정규칙, 수만건 판례, 344개 공공기관 35,000 내부규정을 검색하고 비교 및 분석한 결과를 AI에게 주어 좋은 답변을 만들도록 도와줍니다.
 
-<sub>본 프로젝트는 [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp) 에서 Fork 하여 파생되어 만들어 졌습니다.</sub>
+본 프로젝트는 [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp) 에서 Fork 하여 파생되어 만들어 졌습니다.
 
 ![Korean Law ALIO MCP 데모](./demo.png)
 
 ---
 
-## ✨ 본 fork 의 차별점 (vs 원작 v2.2)
+## v1.0.0 — 공공기관 규정과 법제처 법령을 한 번에
 
-| 영역 | 원작 (v2.2) | 본 fork (v1.0.0) |
-|------|------------|------------------|
-| MCP 도구 | 87개 (법제처) | **110개** (법제처 87 + ALIO 23) |
-| 데이터 | 법제처만 | 법제처 + **ALIO 344개 공공기관 35,208건 내부규정** |
-| 가치 | 읽어줍니다 | 읽고 + **비교하고 + 벤치마킹**합니다 |
-| 라이선스 | MIT | MIT (4개 파일 clean-room 재작성으로 BSL/Source-Available 코드 0) |
+원작 87개 법제처 도구 위에 **ALIO 공공기관 23개 + cross-domain 브리지 3개** 를 통합 — 110개 도구가 1.27GB 데이터 (법제처 + 35,000건 공공기관 내부규정) 를 자연어로 검색·비교·분석.
 
-원작자가 견고히 만든 87개 법제처 도구는 그대로 두고, 그 위에 ALIO 공공기관 규정 통합 + 일반화 + 라이선스 위생 작업을 더했습니다.
-원작 README 의 마케팅 카피·도구 카테고리·체인 도구 설명 등은 [`README-UPSTREAM.md`](./README-UPSTREAM.md) 에서 그대로 확인 가능.
+### 추가 개발 사항
+
+- **ALIO 23개 도구** — 344개 공공기관 35,000건 내부규정 통합 (kordoc 통합 파서로 HWP/HWPX/PDF/XLSX 자동 변환, on-demand 디스크 읽기)
+- **Cross-domain 브리지 3개** — 공공기관 규정 ↔ 상위 법제처 법령 자동 연결
+  - `analyze_regulation_delegation` — 규정 본문에서 인용된 상위 법령 추출 + 법제처 `search_law` 자동 연계
+  - `find_regulations_by_upper_law` — 법제처 법령 → 그 법령을 근거로 삼는 ALIO 규정 역검색
+  - `parse_alio_article_links` — 단일 규정 내 조문간 인용 그래프
+- **자연어 라우팅** — 정식 기관명 자동 lookup (institutions.json 동기 로드), cross-domain 키워드 인식, ALIO/법제처 양 도메인 자동 분기
+- **API 키 인증실패 명확한 안내** — 12개 fetch 사이트 일괄 통합, IP/도메인 화이트리스트 차단 시 등록 페이지 안내
+- **셋업 wizard** — `npx korean-law-alio-mcp setup` (API 키 → 운영 모드 → 클라이언트 다중 선택 → 설정 자동 등록)
+- **fly.io 원격 배포** — `https://korean-law-alio-mcp.fly.dev` (110개 도구 + ALIO 데이터 mirror, best-effort 갱신)
+- **CLI 표면 정리** — `list`/`help`/`--category`/`explain`/REPL + 자연어 bare-query
+- **168 cases 테스트 스위트** — build 6 + router 13 + cli 23 + alio 39 + law 87 (`npm test`)
+- **라이선스 위생** — 4개 파일 clean-room 재작성, BSL/Source-Available 코드 0
+
+### 예시 — cross-domain 자연어 질의
+
+```
+"한국인터넷진흥원 인사규정 상위법"
+```
+
+→ `analyze_regulation_delegation` 한 번으로 (실제 결과):
+
+- ✓ 본문에서 13건 외부 법령 인용 자동 추출
+  - 국가공무원법 제33조, 근로기준법 제76조의2, 산업재해보상보험법 제40조,
+  - 도로교통법 제44조, 양성평등기본법 제3조, 성폭력범죄의 처벌 등에 관한 특례법 제2조 …
+- ✓ 법제처 `search_law` 자동 연계 — 각 인용 법령의 MST/lawId 첨부
+- ✓ 내부 상위규정 1건 매칭 (정부표창규정)
+
+```
+"근로기준법 따르는 공공기관 규정"
+```
+
+→ `find_regulations_by_upper_law` 한 번으로:
+
+- ✓ 35,000건 ALIO 규정 본문에서 "근로기준법" 인용 역검색
+- ✓ 매칭 규정의 인용 컨텍스트 + 기관별 그룹 표시 (예: (사)남북교류협력지원협회 4건, …)
+
+**공공기관 컴플라이언스 검토, 감사, 정책 분석에서 상위 법령까지 한 번에 추적**.
+원작 87개 법제처 도구의 마케팅 카피·도구 카테고리·체인 도구 설명은 [`README-UPSTREAM.md`](./README-UPSTREAM.md) 그대로 확인 가능.
 
 ---
 

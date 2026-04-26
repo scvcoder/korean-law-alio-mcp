@@ -12,22 +12,55 @@ An MCP for searching, comparing, and analyzing Korean national law (법제처) a
 
 Searches and compares 1,600 active laws, 10,000 administrative rules, tens of thousands of court precedents, and 35,000 internal regulations across 344 public institutions, then feeds the results to your AI assistant for higher-quality answers.
 
-<sub>This project is forked and derived from [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp).</sub>
+This project is forked and derived from [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp).
 
 ![Korean Law ALIO MCP demo](./demo.png)
 
 ---
 
-## ✨ What this fork adds (vs upstream v2.2)
+## v1.0.0 — Bridging Public-Institution Regulations with Korean National Law
 
-| Area | Upstream (v2.2) | This fork (v1.0.0) |
-|------|----------------|--------------------|
-| MCP tools | 87 (Korean Law) | **110** (87 Law + 23 ALIO) |
-| Data | Korean Law portal only | + **ALIO 344 public institutions / 35,208 internal regulations** |
-| Value | Reads | Reads + **compares + benchmarks** |
-| License | MIT | MIT (4 files clean-room rewritten — zero BSL / Source-Available code) |
+On top of the upstream's 87 Korean-Law tools, this fork integrates **23 ALIO public-institution tools + 3 cross-domain bridges** — 110 tools that search, compare, and analyze 1.27 GB of data (Korean Law portal + 35,000 public-institution internal regulations) through natural language.
 
-The 87 Korean-Law tools that the upstream author built solidly are kept as-is. This fork adds ALIO public-institution regulation integration, generalization, and license-hygiene work on top.
+### What this fork adds
+
+- **23 ALIO tools** — integrates 35,000 internal regulations from 344 Korean public institutions (HWP/HWPX/PDF/XLSX auto-converted via the kordoc unified parser; on-demand disk reads)
+- **3 cross-domain bridges** — automatic linkage between public-institution regulations ↔ upper Korean national laws
+  - `analyze_regulation_delegation` — extracts cited upper laws from a regulation's body and auto-calls the Korean Law portal `search_law`
+  - `find_regulations_by_upper_law` — reverse lookup from a Korean Law portal statute to ALIO regulations that cite it
+  - `parse_alio_article_links` — intra-document citation graph for a single regulation
+- **Natural-language routing** — canonical institution-name auto lookup (synchronous load of `institutions.json`), cross-domain keyword recognition, automatic ALIO/Korean-Law domain branching
+- **Clear API auth-failure guidance** — unified across 12 fetch sites; when IP/domain whitelisting blocks the request, the user is pointed to the registration page
+- **Setup wizard** — `npx korean-law-alio-mcp setup` (API key → operating mode → multi-client selection → config auto-registration)
+- **fly.io remote deployment** — `https://korean-law-alio-mcp.fly.dev` (110 tools + ALIO data mirror, best-effort refresh)
+- **CLI surface polish** — `list`/`help`/`--category`/`explain`/REPL + bare-query natural language
+- **168-case test suite** — build 6 + router 13 + cli 23 + alio 39 + law 87 (`npm test`)
+- **License hygiene** — 4 files clean-room rewritten, zero BSL/Source-Available code
+
+### Example — cross-domain natural-language queries
+
+```
+"한국인터넷진흥원 인사규정 상위법"
+```
+
+→ One call to `analyze_regulation_delegation` (actual output):
+
+- ✓ Auto-extracted 13 external law citations from the body
+  - 국가공무원법 제33조, 근로기준법 제76조의2, 산업재해보상보험법 제40조,
+  - 도로교통법 제44조, 양성평등기본법 제3조, 성폭력범죄의 처벌 등에 관한 특례법 제2조 …
+- ✓ Auto-linked to the Korean Law portal `search_law` — MST/lawId attached for each cited law
+- ✓ Matched 1 internal upper regulation (정부표창규정)
+
+```
+"근로기준법 따르는 공공기관 규정"
+```
+
+→ One call to `find_regulations_by_upper_law`:
+
+- ✓ Reverse lookup of "근로기준법" citations across 35,000 ALIO regulations
+- ✓ Per-institution grouped results with citation context (e.g. 4 hits at (사)남북교류협력지원협회, …)
+
+**Trace upper laws from public-institution rules in one shot — for compliance review, audits, and policy analysis.**
 For the upstream's rich marketing copy, tool categories, and chain-tool descriptions, see [`README-EN-UPSTREAM.md`](./README-EN-UPSTREAM.md).
 
 ---
