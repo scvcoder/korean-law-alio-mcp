@@ -225,32 +225,31 @@ Expand-Archive -Path alio-data.zip -DestinationPath data\
 
 ### 방법 5: 터미널(CLI)에서 직접 사용
 
-개발자라면 자연어 한 줄로 바로 검색.
-
-#### 5-A. 글로벌 설치 준비 중
+개발자라면 터미널에서 직접 법령·공공기관 규정을 검색할 수 있습니다.
 
 ```bash
-# npm publish 후 활성화 예정
+# 설치
 npm install -g korean-law-alio-mcp
-export LAW_OC=your-api-key-here          # Mac/Linux
-korean-law-alio "민법 제1조"
+
+# 인증키 설정 (your-api-key-here 를 본인 키로 바꾸세요)
+export LAW_OC=your-api-key-here     # Mac/Linux
+set LAW_OC=your-api-key-here        # Windows CMD
+$env:LAW_OC="your-api-key-here"    # Windows PowerShell
+
+# 사용 예시
+korean-law-alio "민법 제1조"                                # 법제처 자연어
+korean-law-alio "OO진흥원 인사규정"                         # ALIO 자연어
+korean-law-alio "OO진흥원 인사규정과 관련된 상위 법령"      # 두 영역 연계
+korean-law-alio "공공기관 휴직 규정 비교해줘"                # ALIO 기관간 비교
+korean-law-alio search_law --query "관세법"                 # 도구 직접 호출
+korean-law-alio list                                        # 전체 110개 도구 목록
+korean-law-alio list --category ALIO                        # 카테고리별 (ALIO/판례/법령검색 등)
+korean-law-alio help search_law                             # 도구별 도움말
+korean-law-alio                                             # REPL (대화형)
 ```
 
-#### 5-B. 로컬 빌드 (지금 사용 가능 — 방법 4-B 후)
-
-```bash
-cd korean-law-alio-mcp
-node build/cli.js "민법 제1조"                              # 자연어 → 자동 라우팅
-node build/cli.js "○○진흥원 인사규정"               # ALIO 자연어
-node build/cli.js "○○진흥원 인사규정 상위법"        # 규정→법령 연계
-node build/cli.js "근로기준법 따르는 공공기관 규정"         # 법령→규정 역검색
-node build/cli.js search_law --query "관세법"               # 도구 직접 호출
-node build/cli.js list                                      # 110개 도구 목록
-node build/cli.js list --category ALIO                      # 카테고리별 (ALIO/판례/법령검색 등)
-node build/cli.js help search_law                           # 도구별 도움말
-node build/cli.js                                           # REPL 진입 (대화형)
-```
-
+> npm publish 전 — 지금 바로 사용하려면 [방법 4-B](#4-b-수동-설치-지금-사용-가능) 의 git clone + 빌드 후 위 `korean-law-alio` 부분을 `node build/cli.js` 로 대체.
+>
 > ALIO 도구는 **사용자 자연어 그대로** — 비교 대상 기관을 환경변수에 박아두지 않음. "A·B·C 기관과 비교", "랜덤", "전체" 같이 자유롭게 표현하면 LLM 이 알아서 호출.
 
 ### API 키 전달 방법 정리

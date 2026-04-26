@@ -225,32 +225,31 @@ Register with your AI client in stdio mode:
 
 ### Method 5: Use from the terminal (CLI)
 
-Developers can search with a single natural-language line.
-
-#### 5-A. Global install Coming soon
+Developers can search Korean national law and public-institution regulations directly from the terminal.
 
 ```bash
-# Activated after npm publish
+# Install
 npm install -g korean-law-alio-mcp
+
+# Set the API key (replace your-api-key-here with your own key)
 export LAW_OC=your-api-key-here     # Mac/Linux
-korean-law-alio "Civil Act Article 1"
+set LAW_OC=your-api-key-here        # Windows CMD
+$env:LAW_OC="your-api-key-here"    # Windows PowerShell
+
+# Examples
+korean-law-alio "민법 제1조"                                # Korean Law (natural language)
+korean-law-alio "OO진흥원 인사규정"                         # ALIO (natural language)
+korean-law-alio "OO진흥원 인사규정과 관련된 상위 법령"      # Cross-area linkage
+korean-law-alio "공공기관 휴직 규정 비교해줘"                # ALIO peer comparison
+korean-law-alio search_law --query "관세법"                 # Direct tool call
+korean-law-alio list                                        # All 110 tools
+korean-law-alio list --category ALIO                        # Filter by category
+korean-law-alio help search_law                             # Per-tool help
+korean-law-alio                                             # REPL (interactive)
 ```
 
-#### 5-B. Local build (works today — after Method 4-B)
-
-```bash
-cd korean-law-alio-mcp
-node build/cli.js "민법 제1조"                              # natural language → auto routing
-node build/cli.js "○○진흥원 인사규정"                       # ALIO natural language
-node build/cli.js "○○진흥원 인사규정 상위법"                # regulation → law linkage
-node build/cli.js "근로기준법 따르는 공공기관 규정"          # law → regulation reverse lookup
-node build/cli.js search_law --query "관세법"               # direct tool call
-node build/cli.js list                                      # all 110 tools
-node build/cli.js list --category ALIO                      # filter (ALIO/판례/법령검색/etc.)
-node build/cli.js help search_law                           # per-tool help
-node build/cli.js                                           # REPL (interactive)
-```
-
+> Before npm publish — to use right now, follow [Method 4-B](#4-b-manual-install-works-today)'s git clone + build, then replace `korean-law-alio` above with `node build/cli.js`.
+>
 > ALIO tools work **straight from the user's natural-language question** — no per-deployment configuration of comparison targets. The user can say "compare A·B·C", "pick 5 random", or just give a topic, and the LLM calls the right tool.
 
 ### API Key Channels — Summary
