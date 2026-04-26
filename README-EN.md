@@ -158,50 +158,49 @@ If you already have other MCP servers configured, just add the `"korean-law-alio
 
 ### Method 4: Install on Your Own Machine (offline-capable)
 
-Runs on your own PC without going through any remote server. You control the ALIO data. **Prerequisite**: Node.js version 20 or higher.
+If you want to use it without an internet connection, or to avoid going through a remote server, you can install it directly.
+
+**Prerequisite:** Node.js version 20 or higher.
+
+**Automatic install (recommended):**
 
 ```bash
-git clone https://github.com/scvcoder/korean-law-alio-mcp
-cd korean-law-alio-mcp
-npm install && npm run build
-echo "LAW_OC=your-api-key-here" > .env
+npx korean-law-alio-mcp setup
 ```
 
-Prepare ALIO data — pick one:
+A setup wizard handles API key entry → AI client selection → config-file auto-registration in one go.
+Supports Claude Desktop, Claude Code, Cursor, VS Code, and Windsurf.
+
+**Manual install:**
 
 ```bash
-# (i) Direct sync — slower but full control (6-12 h, external tools recommended)
-#     macOS:   brew install docling tesseract tesseract-lang libreoffice
-#     Linux:   sudo apt install tesseract-ocr tesseract-ocr-kor libreoffice && pip install docling
-#     Windows: Node.js alone works (only edge cases get parseError)
-npm run alio:sync                   # all 344 institutions
-npm run alio:sync -- --only C0xxx   # single institution (apbaId 4-digit, minutes)
-
-# (ii) Use the maintainer's mirror — faster, no external tools (5-15 min, periodic refresh)
-# macOS/Linux:
-curl -L -o alio-data.tar.gz \
-  https://github.com/scvcoder/korean-law-alio-mcp/releases/latest/download/alio-data.tar.gz
-tar -xzf alio-data.tar.gz -C data/
-# Windows (PowerShell):
-Invoke-WebRequest -Uri https://github.com/scvcoder/korean-law-alio-mcp/releases/latest/download/alio-data.zip -OutFile alio-data.zip
-Expand-Archive -Path alio-data.zip -DestinationPath data\
+npm install -g korean-law-alio-mcp
 ```
 
-Register with your AI app's config file (replace `your-api-key-here` with your own key):
+Add the following to your AI app's config file (replace `your-api-key-here` with your own key):
 
 ```json
 {
   "mcpServers": {
     "korean-law-alio": {
-      "command": "node",
-      "args": ["/absolute/path/korean-law-alio-mcp/build/index.js"],
-      "env": { "LAW_OC": "your-api-key-here" }
+      "command": "korean-law-alio-mcp",
+      "env": {
+        "LAW_OC": "your-api-key-here"
+      }
     }
   }
 }
 ```
 
 Restart the app — done!
+
+> **ALIO data preparation (optional)** — to use ALIO tools on your own PC, you also need the data. If you only use Korean Law portal tools, this is unnecessary.
+> - **Use the maintainer's mirror (5-15 min, recommended)** — no external tools needed:
+>   ```bash
+>   curl -L -o alio-data.tar.gz https://github.com/scvcoder/korean-law-alio-mcp/releases/latest/download/alio-data.tar.gz
+>   tar -xzf alio-data.tar.gz -C data/
+>   ```
+> - **Direct sync (6-12 h)** — `npm run alio:sync` (external tools recommended — macOS: `brew install docling tesseract tesseract-lang libreoffice`)
 
 ### Method 5: Use from the terminal (CLI)
 
@@ -228,8 +227,6 @@ korean-law-alio help search_law                             # Per-tool help
 korean-law-alio                                             # REPL (interactive)
 ```
 
-> Before npm publish — to use right now, follow [Method 4-B](#4-b-manual-install-works-today)'s git clone + build, then replace `korean-law-alio` above with `node build/cli.js`.
->
 > ALIO tools work **straight from the user's natural-language question** — no per-deployment configuration of comparison targets. The user can say "compare A·B·C", "pick 5 random", or just give a topic, and the LLM calls the right tool.
 
 ### API Key Channels — Summary
