@@ -341,10 +341,8 @@ Full 110-tool reference: [`docs/API.md`](./docs/API.md). Motivation & roadmap: [
 | Annexes · structure · stats · history · term KB · misc | 24 | |
 | Chain tools (auto-composition) | 8 | full research · law system · action basis · dispute · amendment · ordinance compare · procedure · doc review |
 | Doc analysis · utils | 8 | article-number conversion, abbreviation dict, etc. |
-| **Subtotal — Korean Law portal (upstream)** | **87** | |
-| **ALIO public-institution regulations** | **22** | search · get · compare · benchmark · timeline · stats + 3 linkage tools |
-| **ALIO chain** | **1** | institution benchmarking |
-| **Subtotal — new in this fork** | **23** | |
+| ALIO public-institution regulations | 22 | search · get · compare · benchmark · timeline · stats + 3 linkage tools |
+| ALIO chain | 1 | institution benchmarking |
 | **Total** | **110** | |
 
 Per-tool details (names · parameters · examples) are in [`docs/API.md`](./docs/API.md).
