@@ -12,6 +12,10 @@
 
 1,600 법률, 10,000 행정규칙, 수만건 판례, 344개 공공기관 35,000 내부규정을 검색하고 비교 및 분석한 결과를 AI에게 주어 좋은 답변을 만들도록 도와줍니다.
 
+<sub>본 프로젝트는 [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp) 에서 Fork 하여 파생되어 만들어 졌습니다.</sub>
+
+![Korean Law ALIO MCP 데모](./demo.png)
+
 ---
 
 ## ✨ 본 fork 의 차별점 (vs 원작 v2.2)

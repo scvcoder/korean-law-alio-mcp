@@ -12,6 +12,10 @@ An MCP for searching, comparing, and analyzing Korean national law (법제처) a
 
 Searches and compares 1,600 active laws, 10,000 administrative rules, tens of thousands of court precedents, and 35,000 internal regulations across 344 public institutions, then feeds the results to your AI assistant for higher-quality answers.
 
+<sub>This project is forked and derived from [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp).</sub>
+
+![Korean Law ALIO MCP demo](./demo.png)
+
 ---
 
 ## ✨ What this fork adds (vs upstream v2.2)
