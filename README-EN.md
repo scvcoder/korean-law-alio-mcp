@@ -12,7 +12,7 @@ An MCP for searching, comparing, and analyzing Korean national law (법제처) a
 
 Searches and compares 1,600 active laws, 10,000 administrative rules, tens of thousands of court precedents, and 35,000 internal regulations across 344 public institutions, then feeds the results to your AI assistant for higher-quality answers.
 
-This project is forked and derived from [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp).
+This project is derived from [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp).
 
 ![Korean Law ALIO MCP demo](./demo.png)
 
@@ -94,8 +94,6 @@ All methods share one prerequisite — a **Korean Law portal API key (OC)**:
 
 > All examples below use `your-api-key-here` as a placeholder — replace with your issued key. (Same convention as [`.env.example`](./.env.example))
 
-> **Recommended: leave the IP/domain registration field empty** when applying — keys without IP registration work from anywhere (local & remote). If you do register IPs/domains, the key only works from those — and remote methods (2 & 3) will require you to add `korean-law-alio-mcp.fly.dev` to your whitelist.
-
 ### Method 1: Claude Code Plugin — One-line install Coming soon
 
 > Marketplace registration is planned for the next release. For now, use Methods 2–5.
@@ -125,11 +123,11 @@ Add a custom connector at [claude.ai](https://claude.ai). Requires Pro/Max/Team/
 Now ask in natural language:
 
 ```
-"Show me Article 74 of the Labor Standards Act"        → Korean Law (87 tools)
-"Show ○○ Agency's HR regulations"                      → ALIO (23 tools)
-"What upper laws does ○○ Agency's HR rule cite?"       → regulation → law linkage
-"Public-institution rules following the Labor Std Act" → law → regulation reverse lookup
-"Compare leave-of-absence rules across institutions"   → ALIO peer comparison
+"근로기준법 제74조 알려줘"                              → Korean Law (87 tools)
+"○○진흥원 인사규정 알려줘"                              → ALIO (23 tools)
+"○○진흥원 감사규정과 관련된 상위법령은 뭐니?"          → regulation → law linkage
+"근로기준법과 OO공단의 인사규정의 관계는 어떻게 되니?"  → law → regulation reverse lookup
+"공공기관 휴직 규정 비교해줘"                            → ALIO peer comparison
 ```
 
 > **Calls go under your key** — they pass through the maintainer's fly server but are billed against *your* quota at the Korean Law portal. The maintainer's quota is unaffected.
