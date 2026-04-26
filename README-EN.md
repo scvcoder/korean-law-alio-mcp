@@ -268,51 +268,103 @@ Multiple channels available. Higher in the table = higher priority:
 
 ---
 
-## Examples (natural language)
+## Examples
 
-> The `○○ Agency` / `○○진흥원` / `C0xxx` placeholders below should be replaced with the actual institution name or apbaId you want to query (e.g. `KISA`, `Korea Electric Power Corp`). Look up canonical names in `data/alio/institutions.json` or via the `search_institution` tool.
+> The `OO Agency` / `OO Corporation` placeholders below are anonymized — replace with the actual institution name you want to query.
 
-### Korean-Law tools (87 — upstream)
+### Korean-Law tools — laws · precedents · interpretations (87 from upstream)
 
 ```
-"민법 제1조 알려줘"                        → search_law + get_law_text auto-chain
-"음주운전 처벌 기준"                       → comprehensive research (chain_full_research)
-"관세법 3단비교"                           → 3-tier (Act → Decree → Rules) delegation analysis
-"건축허가 거부 판례"                       → search_precedents
-"근로기준법 제74조 해석례"                 → search_interpretations
-"종로구 주차 조례"                         → search_ordinance (local ordinance)
-"여권발급 절차 수수료"                     → chain_procedure_detail
+"민법 제1조 알려줘"
+→ The AI searches for the law and auto-fetches the article
+
+"음주운전 처벌 기준"
+→ The AI auto-combines relevant statutes + precedents + interpretations
+
+"관세법 3단비교"
+→ The AI auto-analyzes the Act → Decree → Rules delegation structure
+
+"근로기준법 제74조 해석례"
+→ The AI auto-matches the article + government interpretations
+
+"종로구 주차 조례"
+→ The AI searches local ordinances
 ```
 
 For richer scenarios, see [`README-EN-UPSTREAM.md`](./README-EN-UPSTREAM.md).
 
-### ALIO public-institution tools (23 — new in this fork)
+### ALIO public-institution tools (23 new in this fork)
 
 ```
-"○○진흥원 인사규정"                        → list_alio_regulations (canonical-name auto lookup)
-"공공기관 휴직 규정 비교해줘"                → compare_alio_regulations (auto across all collected)
-"○○진흥원 규정 체계 요약"                  → get_alio_institution_profile
-"우리 기관에 없는 동종 기관 규정"            → suggest_alio_benchmark
-"최근 3개월 내 인사 규정 바뀐 기관?"         → get_recent_alio_revisions
-"C0xxx 와 비슷한 직제규정 다른 기관에"       → find_similar_regulations
-"ALIO에 어떤 데이터가 있어?"                 → get_alio_statistics
+"OO Agency's HR regulations"
+→ The AI auto-matches the canonical institution name → returns its regulation list
+
+"Compare leave-of-absence rules across public institutions"
+→ The AI auto-compares leave-related regulations across all collected institutions
+
+"Rules that peer institutions have but ours doesn't"
+→ The AI auto-extracts benchmarking candidates (peers' rules − ours)
+
+"Which institutions changed HR rules in the last 3 months?"
+→ The AI auto-sorts recent revision history
+
+"What's in the ALIO data?"
+→ The AI auto-summarizes statistics across the collected dataset
 ```
 
-### Tools linking the two areas (new in this fork)
+### Tools linking the two areas (3 new in this fork)
 
-Public-institution internal regulations inherently delegate from / cite upper national laws. Natural-language queries that bridge the two domains route automatically — without the user knowing tool names:
+Public-institution internal regulations inherently delegate from / cite upper national laws. Natural-language queries that span both areas are handled automatically:
 
 ```
-"○○진흥원 인사규정 상위법"                  → analyze_regulation_delegation
-                                             (extracts cited laws from body + auto-calls search_law)
-"○○진흥원 인사규정 위임 분석"               → analyze_regulation_delegation
-"근로기준법 따르는 공공기관 규정"            → find_regulations_by_upper_law
-                                             (Korean-Law statute → ALIO regulations citing it, reverse lookup)
-"근로기준법 제74조 따르는 공공기관 규정"     → find_regulations_by_upper_law (article-scoped)
-"○○진흥원 인사규정 인용 분석"               → parse_alio_article_links (intra-doc citation graph)
+"Show me the upper laws related to OO Agency's HR regulations"
+→ The AI auto-extracts cited upper laws from the regulation body
+   + Looks up each law's information at the Korean Law portal
+
+"Check whether OO Corporation's OOO directive complies with the Labor Standards Act"
+→ The AI reverse-searches citations of the law across 35,000 public-institution regulations
+   → Returns matched directives' citation context + per-institution grouping
 ```
 
-Full reference for 23 ALIO tools + 3 linkage tools: [`docs/API.md`](./docs/API.md) or [`ROADMAP.md`](./ROADMAP.md).
+Full 110-tool reference: [`docs/API.md`](./docs/API.md). Motivation & roadmap: [`ROADMAP.md`](./ROADMAP.md).
+
+---
+
+## Tool structure (110)
+
+| Group | Count | Notes |
+|-------|------:|-------|
+| Laws · Admin rules · Local ordinances | 16 | search · get · compare · linkage |
+| Precedents · Interpretations | 7 | Supreme Court · government interpretations |
+| Committee decisions | 10 | Constitutional Court · FTC · PIPC · NLRC · ACR |
+| Tax tribunal · Customs · Treaties · English law | 8 | per-domain decisions/originals |
+| School rules · Public corps · Public institutions (Korean Law portal) | 6 | public/education |
+| Annexes · structure · stats · history · term KB · misc | 24 | |
+| Chain tools (auto-composition) | 8 | full research · law system · action basis · dispute · amendment · ordinance compare · procedure · doc review |
+| Doc analysis · utils | 8 | article-number conversion, abbreviation dict, etc. |
+| **Subtotal — Korean Law portal (upstream)** | **87** | |
+| **ALIO public-institution regulations** | **22** | search · get · compare · benchmark · timeline · stats + 3 linkage tools |
+| **ALIO chain** | **1** | institution benchmarking |
+| **Subtotal — new in this fork** | **23** | |
+| **Total** | **110** | |
+
+Per-tool details (names · parameters · examples) are in [`docs/API.md`](./docs/API.md).
+
+---
+
+## Highlights
+
+- **110 integrated tools** — 87 Korean Law portal (upstream) + 23 ALIO public-institution (this fork)
+- **Cross-area linkage** — auto-extract upper laws cited by a regulation + reverse lookup ALIO regulations from a national law + intra-document citation graph
+- **Natural-language routing** — canonical institution-name auto-matching (across 344 collected institutions), automatic branching across both areas
+- **MCP + CLI** — same tools usable from Claude Desktop · Cursor · Windsurf and from the terminal
+- **Legal-domain specialization** — abbreviation auto-recognition, article-number conversion, delegation-structure visualization
+- **Annex / form extraction** — HWPX · HWP · PDF · XLSX · DOCX auto-conversion (kordoc engine)
+- **Clear API auth-failure guidance** — guides the user to the registration page when IP/domain whitelisting blocks the request
+- **Remote + local modes** — instant `https://korean-law-alio-mcp.fly.dev` OR own-PC data (`npm run alio:sync`)
+- **Setup wizard** — `npx korean-law-alio-mcp setup` (auto-registers with 5 client types)
+- **Verified** — 168 automated test cases (`npm test` — build · router · CLI · ALIO · Korean Law)
+- **License hygiene** — single MIT license, zero BSL/Source-Available code
 
 ---
 
