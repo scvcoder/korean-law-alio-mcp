@@ -214,7 +214,9 @@ Expand-Archive -Path alio-data.zip -DestinationPath data\
 
 ALIO 공시에서 344개 공공기관 35,000건 규정을 직접 수집. 최신 데이터를 본인이 통제 가능.
 
-스캔 PDF · HWP 3.0 같은 일부 특수 케이스 변환을 위해 OS 시스템 도구 설치 권장 (없어도 일반 케이스는 정상 처리, 특수 케이스만 건너뜀):
+스캔 PDF · HWP 3.0 같은 일부 특수 케이스 변환을 위해 OS 시스템 도구 설치 권장 (없어도 일반 케이스는 정상 처리, 특수 케이스만 건너뜀).
+
+> HWP/HWPX/PDF 통합 파서(`kordoc`)는 `npm install` 시 자동 설치됩니다. 별도 설치 불필요하며, kordoc 으로 파싱이 어려운 부분은 `docling` · `tesseract` · `tesseract-lang` · `libreoffice` 를 사용하여 추가로 파싱합니다.
 
 **macOS:**
 ```bash
@@ -231,6 +233,8 @@ pip install docling
 Node.js 만 있어도 수집 자체는 동작 (특수 케이스는 건너뜀).
 Node.js 가 없다면 [nodejs.org](https://nodejs.org) 에서 LTS 버전(20 이상) `.msi` 다운로드 후 설치.
 
+파싱에 필요한 프로그램들이 설치가 완료되었으면 아래 명령으로 수집합니다.
+
 수집 명령:
 ```bash
 npm run alio:sync                   # 전체 344개 기관 (6-12시간)
@@ -239,8 +243,6 @@ npm run alio:sync -- --resume       # 실패한 기관만 재시도
 ```
 
 수집된 데이터는 `data/alio/` 에 저장 (약 1.27GB).
-
-> HWP/HWPX/PDF 통합 파서(`kordoc`)는 `npm install` 시 자동 설치됩니다. 별도 설치 불필요.
 
 ---
 

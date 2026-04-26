@@ -214,7 +214,9 @@ Expand-Archive -Path alio-data.zip -DestinationPath data\
 
 Sync 35,000 regulations from 344 public institutions directly from ALIO. You stay on the latest data.
 
-OS system tools recommended for converting some edge cases (scanned PDFs · HWP 3.0). Without them, common cases still work fine and only the edge cases are skipped:
+OS system tools recommended for converting some edge cases (scanned PDFs · HWP 3.0). Without them, common cases still work fine and only the edge cases are skipped.
+
+> The HWP/HWPX/PDF unified parser (`kordoc`) is installed automatically with `npm install`. No separate setup needed; for cases kordoc cannot parse, `docling` · `tesseract` · `tesseract-lang` · `libreoffice` are used as additional parsers.
 
 **macOS:**
 ```bash
@@ -231,6 +233,8 @@ pip install docling
 Node.js alone is enough for sync to run (edge cases will be skipped).
 If Node.js isn't installed, download the LTS (20 or higher) `.msi` from [nodejs.org](https://nodejs.org) and run the installer.
 
+Once the parsing tools are installed, run the sync commands below.
+
 Sync commands:
 ```bash
 npm run alio:sync                   # All 344 institutions (6-12 hours)
@@ -239,8 +243,6 @@ npm run alio:sync -- --resume       # Retry failed institutions only
 ```
 
 Synced data lives in `data/alio/` (about 1.27 GB).
-
-> The HWP/HWPX/PDF unified parser (`kordoc`) is installed automatically with `npm install`. No separate setup needed.
 
 ---
 
