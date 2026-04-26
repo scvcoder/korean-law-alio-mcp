@@ -130,9 +130,7 @@
 "공공기관 휴직 규정 비교해줘"                            → ALIO 기관간 토픽 비교
 ```
 
-> **본인 키로 직접 호출** — 운영자(scvcoder)의 fly 서버를 경유하지만 모든 법제처 호출이 본인 키 명의로 카운트됨. 운영자 quota 영향 X.
->
-> **ALIO 데이터는 운영자가 best-effort 갱신** — 모든 응답에 `fetchedAt`(수집 시각)과 `sourceDetailUrl`(ALIO 원본 링크) 포함. 시점이 중요한 사용에는 응답의 `fetchedAt` 직접 확인 + ALIO 원본 검증. 자세한 책임 분담은 [`NOTICE`](./NOTICE)의 "Data sources" 섹션 참고.
+> ALIO 데이터는 운영자가 주기적으로 갱신하지만, ALIO에서 별도 API를 제공하지 않아 실시간 최신 유지는 어렵습니다 (주기적 업데이트 예정).
 
 ### 방법 3: AI 데스크톱 앱에서 사용 (Claude Desktop · Cursor · Windsurf)
 

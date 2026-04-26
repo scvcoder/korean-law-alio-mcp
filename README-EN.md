@@ -130,9 +130,7 @@ Now ask in natural language:
 "공공기관 휴직 규정 비교해줘"                            → ALIO peer comparison
 ```
 
-> **Calls go under your key** — they pass through the maintainer's fly server but are billed against *your* quota at the Korean Law portal. The maintainer's quota is unaffected.
->
-> **ALIO data is refreshed best-effort by the maintainer** — every response preserves `fetchedAt` (snapshot time) and `sourceDetailUrl` (live ALIO link). For time-sensitive use, verify against the live source. See the "Data sources" section in [`NOTICE`](./NOTICE) for the full per-mode responsibility allocation.
+> ALIO data is periodically refreshed by the maintainer. Since ALIO does not provide an official API, real-time freshness is not guaranteed (periodic updates planned).
 
 ### Method 3: AI Desktop Apps (Claude Desktop · Cursor · Windsurf)
 
