@@ -145,7 +145,28 @@ Now ask in natural language:
 
 ### Method 3: AI Desktop Apps (Claude Desktop · Cursor · Windsurf)
 
-Add to your config file:
+#### Claude Desktop — use `mcp-remote` stdio bridge (recommended)
+
+> **Why a bridge is needed**: Registering the streamable-HTTP server directly in Claude Desktop (`"url"` field) triggers a known Anthropic-side bug ([anthropics/claude-ai-mcp#211](https://github.com/anthropics/claude-ai-mcp/issues/211)) where a yellow **"Tool result could not be submitted"** banner appears even on successful tool calls. `mcp-remote` converts the connection to stdio, bypassing that race. **Node.js 20+ required**.
+
+Config file (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS / `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
+
+```json
+{
+  "mcpServers": {
+    "korean-law-alio": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://korean-law-alio-mcp.fly.dev/mcp?oc=your-api-key-here"]
+    }
+  }
+}
+```
+
+Save → fully **quit Claude Desktop** (`Cmd+Q` / `Alt+F4`, do NOT just close the window) → reopen.
+
+#### Cursor · Windsurf — direct streamable-HTTP registration
+
+These clients handle streamable-HTTP natively, so the plain URL form is fine:
 
 ```json
 {
@@ -157,11 +178,8 @@ Add to your config file:
 }
 ```
 
-**Config file locations**:
-
 | App | macOS | Windows |
 |-----|-------|---------|
-| Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` | `%APPDATA%\Claude\claude_desktop_config.json` |
 | Cursor | `<project>/.cursor/mcp.json` | `<project>/.cursor/mcp.json` |
 | Windsurf | `<project>/.windsurf/mcp.json` | `<project>/.windsurf/mcp.json` |
 
