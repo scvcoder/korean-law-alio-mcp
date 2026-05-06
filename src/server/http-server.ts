@@ -98,6 +98,16 @@ export async function startHTTPServer(createServer: () => Server, port: number) 
     next()
   })
 
+  // [DEBUG] 모든 진입 요청 로깅 — Claude Desktop transport 패턴 진단용
+  app.use((req, _res, next) => {
+    if (req.path === "/health" || req.path === "/") return next()
+    const ua = req.headers["user-agent"] || "-"
+    const accept = req.headers["accept"] || "-"
+    const sid = req.headers["mcp-session-id"] || "-"
+    console.error(`[REQ] ${req.method} ${req.path} ua="${ua}" accept="${accept}" sid="${sid}"`)
+    next()
+  })
+
   // 헬스체크
   app.get("/", (req, res) => {
     res.json({
