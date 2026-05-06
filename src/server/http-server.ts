@@ -10,6 +10,7 @@ import express from "express"
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js"
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js"
 import { requestContext } from "../lib/session-state.js"
+import { loadIndex } from "../lib/alio/index-loader.js"
 import { VERSION } from "../version.js"
 
 /**
@@ -142,6 +143,14 @@ export async function startHTTPServer(createServer: () => Server, port: number) 
       (req.headers["authorization"] as string | undefined)?.replace(/^Bearer\s+/i, "") ||
       (req.headers["x-law-oc"] as string | undefined)
 
+    // 응답 시간/상태/RPC method 로깅 (Desktop timeout 진단용)
+    const startedAt = process.hrtime.bigint()
+    const rpcMethod = (req.body && typeof req.body === "object" ? req.body.method : undefined) || "?"
+    res.on("finish", () => {
+      const ms = Number((process.hrtime.bigint() - startedAt) / 1_000_000n)
+      console.error(`[POST /mcp] method=${rpcMethod} status=${res.statusCode} duration=${ms}ms`)
+    })
+
     let server: Server | undefined
     let transport: StreamableHTTPServerTransport | undefined
 
@@ -198,6 +207,18 @@ export async function startHTTPServer(createServer: () => Server, port: number) 
       id: null,
     })
   })
+
+  // ALIO 인덱스 startup preload — 콜드스타트 후 첫 도구 호출이 manifest 디스크 I/O 로
+  // 느려져 Claude Desktop 의 표시 timeout 에 걸리는 문제 회피.
+  // listen 전에 await 해서 서버가 준비됐을 때는 인덱스도 메모리에 있음.
+  // 실패해도 서버 시작은 진행 (도구 호출 시점에 다시 시도하면 됨).
+  const preloadStart = Date.now()
+  try {
+    const idx = await loadIndex()
+    console.error(`✓ ALIO 인덱스 preload 완료 — 기관 ${idx.institutions.length}개 / ${Date.now() - preloadStart}ms`)
+  } catch (err) {
+    console.error(`⚠️  ALIO 인덱스 preload 실패 (${Date.now() - preloadStart}ms):`, scrubError(err).message)
+  }
 
   // 서버 시작 (0.0.0.0으로 바인딩하여 외부 접속 허용)
   const expressServer = app.listen(port, "0.0.0.0", () => {
