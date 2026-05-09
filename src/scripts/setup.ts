@@ -451,9 +451,9 @@ function printComplete(apiKey: string, mode: InstallMode): void {
     )
     console.log()
   } else {
-    console.log(`  ${c.dim}원격 모드 — 운영자가 갱신하는 ALIO 데이터를 best-effort 사용${c.reset}`)
+    console.log(`  ${c.dim}원격 모드 — 운영자가 갱신하는 ALIO 데이터를 주기적으로 갱신하고 mcp 서버를 운영${c.reset}`)
     console.log(
-      `  ${c.dim}응답의 fetchedAt 으로 시점 확인 권장. 자세한 책임 분담은 NOTICE 참고${c.reset}`
+      `  ${c.dim}운영비 문제로 종료 또는 서버가 변경될 수 있음${c.reset}`
     )
     console.log()
   }
