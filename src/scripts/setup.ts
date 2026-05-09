@@ -28,6 +28,7 @@ import { fileURLToPath } from "node:url"
 import { spawn } from "node:child_process"
 import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
+import { userAlioDataDir } from "../lib/alio/paths.js"
 
 const REMOTE_URL = "https://korean-law-alio-mcp.fly.dev/mcp"
 const SERVER_NAME = "korean-law-alio"
@@ -400,24 +401,30 @@ export async function runSetup(): Promise<void> {
     }
 
     // ── (로컬 모드만) ALIO 데이터 자동 준비 ──
+    // 우선순위:
+    //   1) 패키지 루트의 data/alio 에 데이터가 이미 있으면 (dev clone) 그것 재사용
+    //   2) 그렇지 않으면 사용자 홈 (~/.korean-law-alio-mcp/data/alio) 에 받음
+    //      → npx 캐시가 새 버전마다 새 hash 디렉터리에 1.3GB 중복 다운로드되는 문제 회피.
+    //        runtime alioDataDir() 도 user home 폴백 인식하므로 별도 환경변수 설정 불필요.
     if (mode.type === "local") {
       console.log()
       console.log(`  ${c.cyan}${c.bold}[추가]${c.reset} ${c.white}${c.bold}ALIO 데이터 자동 준비${c.reset}`)
       console.log()
+      const pkgRoot = packageRootFromBuildPath(mode.buildPath)
+      const pkgLocalData = join(pkgRoot, "data", "alio")
+      const dataDir = existsSync(join(pkgLocalData, "institutions.json"))
+        ? pkgLocalData
+        : userAlioDataDir()
       try {
-        const pkgRoot = packageRootFromBuildPath(mode.buildPath)
-        const dataDir = join(pkgRoot, "data", "alio")
         const result = await ensureAlioData(dataDir)
         if (result.skipped) {
-          ok("ALIO 데이터", "이미 존재 — 다운로드 스킵")
+          ok("ALIO 데이터", `이미 존재 — 다운로드 스킵 (${dataDir})`)
         } else {
-          ok("ALIO 데이터", `준비 완료${result.sizeMb ? ` (~${result.sizeMb}MB 다운로드)` : ""}`)
+          ok("ALIO 데이터", `준비 완료${result.sizeMb ? ` (~${result.sizeMb}MB 다운로드)` : ""} → ${dataDir}`)
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         fail("ALIO 데이터 자동 다운로드 실패", msg)
-        const pkgRoot = packageRootFromBuildPath(mode.buildPath)
-        const dataDir = join(pkgRoot, "data", "alio")
         console.log()
         console.log(`  ${c.dim}수동 fallback:${c.reset}`)
         console.log(`  ${c.dim}  curl -L -o /tmp/alio-data.tar.gz ${ALIO_RELEASE_URL}${c.reset}`)

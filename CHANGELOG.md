@@ -2,6 +2,26 @@
 
 ---
 
+## [1.0.4] - 2026-05-09
+
+> **Setup wizard 가 ALIO 데이터를 npx 캐시 대신 사용자 홈에 받도록 — 버전 업그레이드마다 1.3GB 중복 다운로드 회피.**
+
+### Changed
+
+- **Setup wizard ALIO 데이터 destination 변경** ([src/scripts/setup.ts](./src/scripts/setup.ts)) — 이전엔 항상 패키지 루트 (`<pkgRoot>/data/alio`) 에 받음. npx 캐시는 새 버전마다 새 hash 디렉터리 (`~/.npm/_npx/<hash>/`) 라서 setup 마다 1.3GB 가 새로 받혀 누적됨.
+
+  새 우선순위:
+  1. **dev clone 감지** — 패키지 루트 `data/alio/institutions.json` 이 이미 있으면 그것 재사용
+  2. **그 외 (npx / 글로벌 설치)** — `~/.korean-law-alio-mcp/data/alio/` (사용자 홈) 에 받음
+
+  → npx 로 새 버전 setup 해도 이미 받아둔 user home 데이터 재사용 (skip). 디스크 절약. v1.0.3 의 `paths.ts` user home 폴백 로직과 짝을 이룸.
+
+### Background
+
+v1.0.3 까지 사용자 머신에 npx 캐시가 누적되는 문제 발견 — 예를 들어 v1.0.0 + v1.0.3 두 캐시가 각각 ~750MB / ~2.1GB 차지 (둘 다 ALIO 데이터 1.3GB 중복 포함). 본 변경으로 이후 release 부터는 새 캐시에 데이터 다운로드 안 함. **이전 캐시는 수동 정리 필요**: `rm -rf ~/.npm/_npx/<old-hash>` (기존 v1.0.0 ~ v1.0.3 캐시).
+
+---
+
 ## [1.0.3] - 2026-05-09
 
 > **`npm install -g` 사용자를 위한 ALIO 데이터 자동 받기 + README 다듬기**: `fetch-data` 서브커맨드 신설 — 글로벌 설치 후 코드와 별개로 ~300MB ALIO 데이터를 sudo 없이 사용자 홈에 받을 수 있게. README 도 v1.0.2 게시 후 누적된 정리 한꺼번에 반영.
