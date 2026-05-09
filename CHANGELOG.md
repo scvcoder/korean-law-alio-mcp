@@ -5,6 +5,48 @@
 
 ---
 
+## [1.0.1] - 2026-05-09
+
+> **데스크탑 호환성 + 로컬 설치 자동화**: Claude.ai 원격 MCP / Claude Desktop 의 streamable-HTTP transport 호환성 이슈 해결, 로컬 모드 setup 의 마지막 수동 단계 (ALIO 데이터 다운로드) 자동화. 새 도구 추가 없음 — 호환성 + UX 개선.
+
+### Fixed
+
+- **HTTP transport 를 stateless 로 전환** ([bb7b115](https://github.com/scvcoder/korean-law-alio-mcp/commit/bb7b115)) — 세션 ID 기반 stateful 모드는 Fly.io `auto_stop_machines='suspend'` 와 상극. 머신이 잠들면 in-memory `sessions` Map 이 통째로 사라지고, Claude.ai 가 cached session ID 로 재호출하면 404 → "Tool result could not be submitted" 에러. 매 POST 요청마다 fresh `Server` + `Transport` 생성, `AsyncLocalStorage` 의 `requestContext` 로 API 키 격리. 세션 Map / EventStore / idle cleanup 전부 제거 → 재시작/스케일아웃/OOM 내성. dead code 였던 `src/server/sse-server.ts` 삭제 (494 lines deleted).
+- **setup wizard 가 Claude Desktop 에 잘못된 형식 등록** ([d31be33](https://github.com/scvcoder/korean-law-alio-mcp/commit/d31be33)) — 원격 모드일 때 모든 클라이언트에 `{url}` 필드로 썼지만 Claude Desktop 의 `mcpServers` 는 `url` 을 지원 안 함 (stdio 전용) → "유효한 MCP 서버 구성이 아님" 으로 무시됨. 이제 클라이언트별 분기:
+  - Claude Desktop → `{ command: "npx", args: ["mcp-remote", url] }`
+  - 그 외 (Cursor / Windsurf / Claude Code / VS Code) → `{ url }` 유지
+
+### Added
+
+- **로컬 모드 setup 에서 ALIO 데이터 자동 다운로드** ([716116b](https://github.com/scvcoder/korean-law-alio-mcp/commit/716116b)) — 이전에는 wizard 종료 후 사용자가 GitHub releases 에서 `alio-data.tar.gz` 를 직접 받아 압축 풀어야 했음. 이제 setup 마지막 단계에서 자동으로:
+  1. 패키지 루트의 `data/alio/institutions.json` 존재 여부 체크 (있으면 스킵)
+  2. release latest 의 `alio-data.tar.gz` 스트리밍 다운로드 (2% 단위 진행률 표시)
+  3. system `tar` 로 압축 해제
+  4. tarball 의 `alio/` 래퍼 자동 flatten → `data/alio/*` 평탄 구조
+
+  실패 시 `curl + mkdir + tar` fallback 명령 안내. tar 미설치 (Win 구버전) 도 별도 에러 메시지로 식별.
+
+### Changed
+
+- **ALIO 인덱스 startup preload + POST /mcp 응답 시간 로깅** ([842ceaf](https://github.com/scvcoder/korean-law-alio-mcp/commit/842ceaf)) — 콜드스타트 후 첫 ALIO 도구 호출이 manifest 디스크 I/O 로 ~4초 걸려 데스크탑 표시 timeout 에 걸리는 문제 회피. `app.listen` 직전에 `await loadIndex()` 한 번 호출. 부팅이 1-2초 길어지지만 fly proxy 가 listen 까지 대기해서 클라이언트 영향 없음. 각 POST /mcp 의 RPC method + status + duration 로깅 추가.
+- **`RATE_LIMIT_RPM=300` 으로 정렬** ([556cc5b](https://github.com/scvcoder/korean-law-alio-mcp/commit/556cc5b)) — 업스트림 (chrisryugj/korean-law-mcp) 배포 설정과 일치 (기본 60 → 300).
+- **Claude Code plugin marketplace 활성화** ([5010406](https://github.com/scvcoder/korean-law-alio-mcp/commit/5010406)) — `.claude-plugin/marketplace.json` 추가, Claude Code 의 plugin marketplace 등록 가능.
+
+### Docs
+
+- **README — Claude Desktop 은 mcp-remote stdio 브릿지 안내** ([9e8ae5f](https://github.com/scvcoder/korean-law-alio-mcp/commit/9e8ae5f)) — 방법 3 (AI 데스크탑) 을 두 하위섹션으로 분리: Claude Desktop 은 [#211 버그](https://github.com/anthropics/claude-ai-mcp/issues/211) 안내 + `mcp-remote` 형태, Cursor/Windsurf 는 기존 `url` 형태 유지. README.md + README-EN.md 둘 다 갱신.
+- **README badges + 한↔영 상호 링크 + Highlights 섹션 정리** ([4a1ae7a](https://github.com/scvcoder/korean-law-alio-mcp/commit/4a1ae7a), [b468577](https://github.com/scvcoder/korean-law-alio-mcp/commit/b468577), [e4ac35a](https://github.com/scvcoder/korean-law-alio-mcp/commit/e4ac35a), [590f31b](https://github.com/scvcoder/korean-law-alio-mcp/commit/590f31b)).
+
+### CI
+
+- **자동 테스트 단계 추가** ([d66c286](https://github.com/scvcoder/korean-law-alio-mcp/commit/d66c286)) — `.github/workflows/ci.yml` 에 build 후 `node test/index.mjs` 실행 (87 cases).
+
+### Background — Claude Desktop "Tool result could not be submitted" 배너
+
+본 버전의 데스크탑 호환성 작업은 Anthropic 측 [알려진 버그 #211](https://github.com/anthropics/claude-ai-mcp/issues/211) (streamable-HTTP transport 의 SSE close race) 의 회피책. Anthropic 의 fix 가 들어오기 전까지 데스크탑은 mcp-remote stdio 브릿지 사용 권장.
+
+---
+
 ## [1.0.0] - 2026-04-26
 
 > **Fork + 리네이밍**: `korean-law-mcp` → `korean-law-alio-mcp`
