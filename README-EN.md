@@ -98,22 +98,64 @@ All methods share one prerequisite — a **Korean Law portal API key (OC)**:
 
 > All examples below use `your-api-key-here` as a placeholder — replace with your issued key. (Same convention as [`.env.example`](./.env.example))
 
-### Method 1: Claude Code Plugin — One-line install
+> **Recommended path**: For stability, **prefer local mode** (Methods 1, 3, 4). Choose Method 2 for the lightest possible try.
+> Local methods require Node.js — see [Prerequisite](#prerequisite--nodejs-for-methods-1-3-4).
 
-Export your API key first so it gets auto-injected at install time:
+### Prerequisite — Node.js (for Methods 1, 3, 4)
+
+> Skip this section if you only use Method 2 (Claude.ai web).
+
+This MCP server runs on Node.js. **Node.js 20 or higher** is required.
+
+**macOS:**
+```bash
+# Option A — Homebrew (recommended)
+brew install node
+
+# Option B — Official installer
+# https://nodejs.org/en/download → download the LTS build
+```
+
+**Windows:**
+```powershell
+# Option A — winget (built into Windows 10/11)
+winget install OpenJS.NodeJS.LTS
+
+# Option B — Official installer
+# https://nodejs.org/en/download → download the LTS build
+```
+
+**Linux (Ubuntu / Debian):**
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+sudo apt install -y nodejs
+```
+
+**Verify:**
+```bash
+node --version    # should show v20.x.x or later
+npx --version
+```
+
+### Method 1: Claude Desktop / Cursor / Windsurf — `npx` auto-setup (most recommended)
+
+One line. The wizard auto-detects clients, writes the config, and downloads ALIO data — all in one go.
 
 ```bash
-export LAW_OC=your-api-key-here   # add to ~/.zshrc or ~/.bashrc to persist
+npx korean-law-alio-mcp setup
 ```
 
-Then inside Claude Code:
+The wizard walks you through:
+1. **API key** — the one issued at Step 0 (press Enter to skip and add it manually later)
+2. **Operating mode** — press Enter (default) → **local stdio** (recommended for stability)
+3. **Client multi-select** — Claude Desktop / Cursor / Windsurf / VS Code / Claude Code (`.mcp.json`), comma-separated
+4. **Auto handling**:
+   - Writes the stdio entry into each selected client's config file
+   - Downloads ~300 MB of ALIO data and extracts it (1-2 minutes)
 
-```
-/plugin marketplace add scvcoder/korean-law-alio-mcp
-/plugin install korean-law-alio@korean-law-alio-marketplace
-```
+After saving, **fully quit and reopen** the client (Claude Desktop: `Cmd+Q` / `Alt+F4` — closing the window is not enough).
 
-The plugin runs `npx -y korean-law-alio-mcp` with `LAW_OC` passed through. No config file edits needed.
+> **Want remote mode instead?** Pick option 2 in the wizard. Note: it depends on the maintainer's fly server, exposes you to Anthropic's [streamable-HTTP race bug](https://github.com/anthropics/claude-ai-mcp/issues/211), and may suffer cold-start timeouts. The remote server may be shut down or migrated due to operating costs. Prefer local for stability.
 
 ### Method 2: Use directly in Claude.ai web (no install) Easiest
 
@@ -143,141 +185,24 @@ Now ask in natural language:
 
 > ALIO data is periodically refreshed by the maintainer. Since ALIO does not provide an official API, real-time freshness is not guaranteed (periodic updates planned).
 
-### Method 3: AI Desktop Apps (Claude Desktop · Cursor · Windsurf)
+### Method 3: Claude Code Plugin — `/plugin install` one-liner
 
-#### Claude Desktop — use `mcp-remote` stdio bridge (recommended)
-
-> **Why a bridge is needed**: Registering the streamable-HTTP server directly in Claude Desktop (`"url"` field) triggers a known Anthropic-side bug ([anthropics/claude-ai-mcp#211](https://github.com/anthropics/claude-ai-mcp/issues/211)) where a yellow **"Tool result could not be submitted"** banner appears even on successful tool calls. `mcp-remote` converts the connection to stdio, bypassing that race. **Node.js 20+ required**.
-
-Config file (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS / `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
-
-```json
-{
-  "mcpServers": {
-    "korean-law-alio": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://korean-law-alio-mcp.fly.dev/mcp?oc=your-api-key-here"]
-    }
-  }
-}
-```
-
-Save → fully **quit Claude Desktop** (`Cmd+Q` / `Alt+F4`, do NOT just close the window) → reopen.
-
-#### Cursor · Windsurf — direct streamable-HTTP registration
-
-These clients handle streamable-HTTP natively, so the plain URL form is fine:
-
-```json
-{
-  "mcpServers": {
-    "korean-law-alio": {
-      "url": "https://korean-law-alio-mcp.fly.dev/mcp?oc=your-api-key-here"
-    }
-  }
-}
-```
-
-| App | macOS | Windows |
-|-----|-------|---------|
-| Cursor | `<project>/.cursor/mcp.json` | `<project>/.cursor/mcp.json` |
-| Windsurf | `<project>/.windsurf/mcp.json` | `<project>/.windsurf/mcp.json` |
-
-If you already have other MCP servers configured, just add the `"korean-law-alio": { ... }` entry inside `"mcpServers": { ... }`. Restart the app.
-
-### Method 4: Install on Your Own Machine (offline-capable)
-
-If you want to use it without an internet connection, or to avoid going through a remote server, you can install it directly.
-
-**Prerequisite:** Node.js version 20 or higher.
-
-**Automatic install (recommended):**
+Export your API key first so it gets auto-injected at install time:
 
 ```bash
-npx korean-law-alio-mcp setup
+export LAW_OC=your-api-key-here   # add to ~/.zshrc or ~/.bashrc to persist
 ```
 
-A setup wizard handles API key entry → AI client selection → config-file auto-registration in one go.
-Supports Claude Desktop, Claude Code, Cursor, VS Code, and Windsurf.
+Then inside Claude Code:
 
-**Manual install:**
-
-```bash
-npm install -g korean-law-alio-mcp
+```
+/plugin marketplace add scvcoder/korean-law-alio-mcp
+/plugin install korean-law-alio@korean-law-alio-marketplace
 ```
 
-Add the following to your AI app's config file (replace `your-api-key-here` with your own key):
+The plugin runs `npx -y korean-law-alio-mcp` with `LAW_OC` passed through. No config file edits needed.
 
-```json
-{
-  "mcpServers": {
-    "korean-law-alio": {
-      "command": "korean-law-alio-mcp",
-      "env": {
-        "LAW_OC": "your-api-key-here"
-      }
-    }
-  }
-}
-```
-
-**ALIO data preparation** — to use ALIO tools on your own PC, you need the data. Pick one of the two methods below.
-
-#### (Option 1) Use the maintainer's mirror (5-15 min, recommended)
-
-Download a pre-collected snapshot. ~200MB compressed → ~1.27GB after extraction.
-
-**Mac, Linux:**
-```bash
-curl -L -o alio-data.tar.gz https://github.com/scvcoder/korean-law-alio-mcp/releases/latest/download/alio-data.tar.gz
-tar -xzf alio-data.tar.gz -C data/
-```
-
-**Windows (PowerShell):**
-```powershell
-Invoke-WebRequest -Uri https://github.com/scvcoder/korean-law-alio-mcp/releases/latest/download/alio-data.zip -OutFile alio-data.zip
-Expand-Archive -Path alio-data.zip -DestinationPath data\
-```
-
-#### (Option 2) Direct sync (6-12 hours)
-
-Sync 35,000 regulations from 344 public institutions directly from ALIO. You stay on the latest data.
-
-OS system tools recommended for converting some edge cases (scanned PDFs · HWP 3.0). Without them, common cases still work fine and only the edge cases are skipped.
-
-> The HWP/HWPX/PDF unified parser (`kordoc`) is installed automatically with `npm install`. No separate setup needed; for cases kordoc cannot parse, `docling` · `tesseract` · `tesseract-lang` · `libreoffice` are used as additional parsers.
-
-**macOS:**
-```bash
-brew install docling tesseract tesseract-lang libreoffice
-```
-
-**Linux (Ubuntu/Debian):**
-```bash
-sudo apt install tesseract-ocr tesseract-ocr-kor libreoffice
-pip install docling
-```
-
-**Windows:**
-Node.js alone is enough for sync to run (edge cases will be skipped).
-If Node.js isn't installed, download the LTS (20 or higher) `.msi` from [nodejs.org](https://nodejs.org) and run the installer.
-
-Once the parsing tools are installed, run the sync commands below.
-
-Sync commands:
-```bash
-npm run alio:sync                   # All 344 institutions (6-12 hours)
-npm run alio:sync -- --only C0xxx   # Single institution (apbaId 4-digit, minutes)
-npm run alio:sync -- --resume       # Retry failed institutions only
-```
-
-Synced data lives in `data/alio/` (about 1.27 GB).
-
----
-
-Restart the app — done!
-
-### Method 5: Use from the terminal (CLI)
+### Method 4: Use from the terminal (CLI)
 
 Developers can search Korean national law and public-institution regulations directly from the terminal.
 
