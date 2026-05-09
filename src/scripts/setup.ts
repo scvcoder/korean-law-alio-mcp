@@ -100,9 +100,20 @@ type InstallMode =
   | { type: "local"; buildPath: string }
   | { type: "global" }
 
-function buildServerEntry(apiKey: string, mode: InstallMode): Record<string, unknown> {
+function buildServerEntry(
+  apiKey: string,
+  mode: InstallMode,
+  clientName?: string
+): Record<string, unknown> {
   if (mode.type === "remote") {
     const url = apiKey ? `${mode.url}?oc=${encodeURIComponent(apiKey)}` : mode.url
+    // Claude Desktop 은 mcpServers 에서 "url" 필드를 지원하지 않음 (stdio 만).
+    // 또한 streamable-HTTP 직접 등록 시 Anthropic 측 알려진 버그
+    // (anthropics/claude-ai-mcp#211) 로 성공한 도구 호출에도 "Tool result could
+    // not be submitted" 배너가 뜸. mcp-remote 가 stdio 로 변환해 양쪽 모두 우회.
+    if (clientName === "Claude Desktop") {
+      return { command: "npx", args: ["mcp-remote", url] }
+    }
     return { url }
   }
   const env: Record<string, string> = {}
@@ -244,11 +255,11 @@ export async function runSetup(): Promise<void> {
     // ── Step 4: 설정 파일 업데이트 ──
     console.log()
     stepHeader(4, 4, "설정 파일 업데이트")
-    const entry = buildServerEntry(apiKey, mode)
 
     for (const idx of indices) {
       const client = clients[idx]
       try {
+        const entry = buildServerEntry(apiKey, mode, client.name)
         const config = await readJsonFile(client.configPath)
         const servers = (config[client.format] ?? {}) as Record<string, unknown>
         servers[SERVER_NAME] = entry
