@@ -2,6 +2,37 @@
 
 ---
 
+## [1.0.6] - 2026-05-09
+
+> **`uninstall` 서브커맨드 신설**: 설치 흔적을 한 번에 정리할 수 있는 명령 추가 — 클라이언트 설정 / ALIO 데이터 / npx 캐시 일괄.
+
+### Added
+
+- **`uninstall` 서브커맨드** ([src/scripts/uninstall.ts](./src/scripts/uninstall.ts)) — 사용 예: `npx korean-law-alio-mcp@latest uninstall` 또는 `korean-law-alio-mcp uninstall` (글로벌 설치).
+
+  동작:
+  1. **검사** — 다음 영역 스캔 후 사용자에게 미리 보여줌
+     - 모든 MCP 클라이언트 설정 파일 (Claude Desktop / Claude Code / Cursor / VS Code / Windsurf) 에서 `korean-law-alio` 항목 발견 여부
+     - ALIO 데이터 디렉터리 (`~/.korean-law-alio-mcp/`)
+     - 우리 패키지가 들어있는 모든 npx 캐시 (`~/.npm/_npx/*/`)
+     - 회수 가능 사이즈 표시
+  2. **확인 prompt** — 기본 `[y/N]`, 실수 방지로 No 가 default
+  3. **제거 실행**:
+     - 클라이언트 설정에서 `korean-law-alio` 키만 삭제 (다른 MCP 서버는 보존)
+     - ALIO 데이터 디렉터리 통째 삭제
+     - npx 캐시 디렉터리 통째 삭제 (단, 자기 자신이 실행 중인 캐시는 OS 가 사용 중이라 제외 → 안내 출력)
+  4. **수동 정리 안내** — 현재 캐시 / 글로벌 설치 / `LAW_OC` 환경변수
+
+### Changed
+
+- **README 방법 1 끝에 참고사항 blockquote 추가** — `fetch-data` (데이터 갱신) + `uninstall` (제거) 명령 발견 가능하도록 노출. 한국어 + 영문 README 동기화.
+
+### Internal
+
+- `detectClients()` / `ClientConfig` 인터페이스를 setup.ts 에서 export — uninstall 이 같은 클라이언트 목록 재사용.
+
+---
+
 ## [1.0.5] - 2026-05-09
 
 > **Setup wizard UX 정리 + ALIO 데이터 갱신 인터랙션 추가**: 입력 필수화 / 디폴트값 자동 입력 / 기존 데이터 발견 시 prompt 갱신 / 잘못된 안내 정정.

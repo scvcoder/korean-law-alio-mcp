@@ -32,7 +32,7 @@ May this help those who find legal access difficult, and the public-institution 
 
 ---
 
-## v1.0.5 — Bridging Public-Institution Regulations with Korean National Law
+## v1.0.6 — Bridging Public-Institution Regulations with Korean National Law
 
 On top of the upstream's 87 Korean-Law tools, this fork adds **23 ALIO public-institution tools + 3 tools that link the two areas** — 110 tools that search, compare, and analyze 1.27 GB of data (Korean Law portal + 35,000 public-institution internal regulations) through natural language.
 
