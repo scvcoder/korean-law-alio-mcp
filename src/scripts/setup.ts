@@ -317,15 +317,19 @@ export async function runSetup(): Promise<void> {
   try {
     printBanner()
 
-    // ── Step 1: API 키 ──
-    stepHeader(1, 4, "법제처 API 키")
+    // ── Step 1: API 키 (필수) ──
+    stepHeader(1, 4, "법제처 API 키 (필수)")
     console.log(`  ${c.dim}발급(무료, 1분): https://open.law.go.kr/LSO/openApi/guideResult.do${c.reset}`)
     console.log(`  ${c.dim}IP/도메인 등록은 비워두는 것을 권장 — 어디서든 호출 가능${c.reset}`)
-    console.log(`  ${c.dim}Enter로 건너뛰기 — 나중에 설정 파일에서 수동 입력 가능${c.reset}`)
     console.log()
-    const apiKey = await ask(rl, `  ${c.cyan}>${c.reset} API 키: `)
-    if (apiKey) ok("키 등록됨")
-    else console.log(`  ${c.yellow}-${c.reset} 건너뜀`)
+    let apiKey = ""
+    while (!apiKey) {
+      apiKey = await ask(rl, `  ${c.cyan}>${c.reset} API 키: `)
+      if (!apiKey) {
+        console.log(`  ${c.red}!${c.reset} API 키는 필수입니다. 발급 후 입력하세요 (Ctrl+C 로 종료).`)
+      }
+    }
+    ok("키 등록됨")
     console.log()
 
     // ── Step 2: 운영 모드 ──
@@ -340,7 +344,7 @@ export async function runSetup(): Promise<void> {
     console.log(`  ${c.cyan}2${c.reset}) ${c.white}원격 모드${c.reset}    ${c.dim}— 운영자 fly 서버 사용 (${REMOTE_URL})${c.reset}`)
     console.log(`     ${c.dim}즉시 110개 도구 + ALIO 데이터 mirror 사용 (best-effort 갱신)${c.reset}`)
     console.log()
-    const modeInput = (await ask(rl, `  ${c.cyan}>${c.reset} 번호 (기본 1): `)) || "1"
+    const modeInput = (await ask(rl, `  ${c.cyan}>${c.reset} 번호 [기본=1]: `)) || "1"
 
     let mode: InstallMode
     if (modeInput === "1" && localBuild) {
@@ -355,30 +359,46 @@ export async function runSetup(): Promise<void> {
     // ── Step 3: 클라이언트 선택 ──
     stepHeader(3, 4, "MCP 클라이언트 선택 (다중 가능, 쉼표 구분)")
     const clients = detectClients()
+    const detectedFlags = clients.map((cl) => existsSync(cl.configPath))
     clients.forEach((cl, i) => {
-      const exists = existsSync(cl.configPath)
-      const badge = exists ? ` ${c.green}[감지됨]${c.reset}` : ""
+      const badge = detectedFlags[i] ? ` ${c.green}[감지됨]${c.reset}` : ""
       console.log(`  ${c.cyan}${String(i + 1).padStart(2)}${c.reset}) ${c.white}${cl.name}${c.reset}${badge}`)
       console.log(`      ${c.dim}${cl.configPath}${c.reset}`)
     })
+    console.log(`  ${c.dim} 0) 자동 등록 안 함 — 수동 설정 안내만 출력${c.reset}`)
     console.log()
-    const clientInput = await ask(rl, `  ${c.cyan}>${c.reset} 번호 (예: 1,3 / Enter로 수동 안내): `)
 
-    if (!clientInput) {
-      console.log()
-      printManualConfig(apiKey, mode)
-      return
-    }
+    // 디폴트: 감지된 클라이언트 모두 (예: "1,3"). 감지 0건이면 디폴트 없음.
+    const detectedDefault = clients
+      .map((_, i) => (detectedFlags[i] ? String(i + 1) : null))
+      .filter((s): s is string => s !== null)
+      .join(",")
+    const promptText = detectedDefault
+      ? `  ${c.cyan}>${c.reset} 번호 (예: 1,3) [기본=감지된 ${detectedDefault}]: `
+      : `  ${c.cyan}>${c.reset} 번호 (예: 1,3): `
 
-    const indices = clientInput
-      .split(",")
-      .map((s) => parseInt(s.trim(), 10) - 1)
-      .filter((i) => i >= 0 && i < clients.length)
-
-    if (indices.length === 0) {
-      console.log(`\n  ${c.yellow}유효한 선택 없음${c.reset}`)
-      printManualConfig(apiKey, mode)
-      return
+    let clientInput = ""
+    let indices: number[] = []
+    while (true) {
+      clientInput = (await ask(rl, promptText)) || detectedDefault
+      if (!clientInput) {
+        console.log(`  ${c.red}!${c.reset} 1개 이상 선택하거나 0 (수동 안내) 을 입력하세요.`)
+        continue
+      }
+      if (clientInput === "0") {
+        console.log()
+        printManualConfig(apiKey, mode)
+        return
+      }
+      indices = clientInput
+        .split(",")
+        .map((s) => parseInt(s.trim(), 10) - 1)
+        .filter((i) => i >= 0 && i < clients.length)
+      if (indices.length === 0) {
+        console.log(`  ${c.red}!${c.reset} 유효한 번호가 없습니다. 다시 입력하세요.`)
+        continue
+      }
+      break
     }
 
     // ── Step 4: 설정 파일 업데이트 ──
@@ -406,6 +426,7 @@ export async function runSetup(): Promise<void> {
     //   2) 그렇지 않으면 사용자 홈 (~/.korean-law-alio-mcp/data/alio) 에 받음
     //      → npx 캐시가 새 버전마다 새 hash 디렉터리에 1.3GB 중복 다운로드되는 문제 회피.
     //        runtime alioDataDir() 도 user home 폴백 인식하므로 별도 환경변수 설정 불필요.
+    let alioDataDestination: string | undefined
     if (mode.type === "local") {
       console.log()
       console.log(`  ${c.cyan}${c.bold}[추가]${c.reset} ${c.white}${c.bold}ALIO 데이터 자동 준비${c.reset}`)
@@ -415,6 +436,7 @@ export async function runSetup(): Promise<void> {
       const dataDir = existsSync(join(pkgLocalData, "institutions.json"))
         ? pkgLocalData
         : userAlioDataDir()
+      alioDataDestination = dataDir
       try {
         const result = await ensureAlioData(dataDir)
         if (result.skipped) {
@@ -433,13 +455,13 @@ export async function runSetup(): Promise<void> {
       }
     }
 
-    printComplete(apiKey, mode)
+    printComplete(apiKey, mode, alioDataDestination)
   } finally {
     rl.close()
   }
 }
 
-function printComplete(apiKey: string, mode: InstallMode): void {
+function printComplete(apiKey: string, mode: InstallMode, dataDir?: string): void {
   console.log()
   console.log(`  ${c.green}${c.bold}╔${"═".repeat(58)}╗${c.reset}`)
   console.log(
@@ -456,9 +478,10 @@ function printComplete(apiKey: string, mode: InstallMode): void {
   }
 
   if (mode.type === "local") {
-    console.log(`  ${c.dim}로컬 모드 — ALIO 데이터는 패키지 루트 ${c.bold}data/alio/${c.reset}${c.dim} 에 보관됩니다.${c.reset}`)
+    const dest = dataDir ?? userAlioDataDir()
+    console.log(`  ${c.dim}로컬 모드 — ALIO 데이터 위치: ${c.bold}${dest}${c.reset}`)
     console.log(
-      `  ${c.dim}최신 데이터로 갱신하려면: ${c.bold}npm run alio:sync${c.reset}${c.dim} (6-12시간) 또는 setup wizard 재실행 후 data/alio 삭제${c.reset}`
+      `  ${c.dim}최신 데이터로 갱신하려면: 위 디렉터리 삭제 후 ${c.bold}korean-law-alio-mcp fetch-data${c.reset}${c.dim} 또는 setup wizard 재실행${c.reset}`
     )
     console.log()
   } else {

@@ -54,7 +54,7 @@ export async function compareAlioRegulations(
         content: [
           {
             type: "text",
-            text: "수집된 ALIO 데이터가 없습니다. `npm run alio:sync` 로 비교할 기관 데이터를 먼저 수집하세요.",
+            text: "수집된 ALIO 데이터가 없습니다. `korean-law-alio-mcp fetch-data` 로 받아주세요.",
           },
         ],
         isError: true,

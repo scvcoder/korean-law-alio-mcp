@@ -95,7 +95,7 @@ export async function getAlioRegulation(
         content: [
           {
             type: "text",
-            text: `본문 파일을 읽을 수 없습니다: ${entry.mdPath}. 재수집 필요: npm run alio:sync -- --only ${inst.apbaId}`,
+            text: `본문 파일을 읽을 수 없습니다: ${entry.mdPath}. \`korean-law-alio-mcp fetch-data\` 로 mirror 를 다시 받아주세요.`,
           },
         ],
         isError: true,

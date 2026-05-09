@@ -292,7 +292,7 @@ Per-tool details (names · parameters · examples) are in [`docs/API.md`](./docs
 - **MCP + CLI** — same tools usable from Claude Desktop · Cursor · Windsurf and from the terminal
 - **Legal-domain specialization** — abbreviation auto-recognition, article-number conversion, delegation-structure visualization
 - **Annex / form extraction** — HWPX · HWP · PDF · XLSX · DOCX auto-conversion (kordoc engine)
-- **Remote + local modes** — instant `https://korean-law-alio-mcp.fly.dev` OR own-PC data (`npm run alio:sync`)
+- **Remote + local modes** — instant `https://korean-law-alio-mcp.fly.dev` OR own-PC data (`korean-law-alio-mcp fetch-data`)
 - **Setup wizard** — `npx korean-law-alio-mcp setup`
 - **Verified** — 168 automated test cases (`npm test` — build · router · CLI · ALIO · Korean Law)
 - **License** — MIT

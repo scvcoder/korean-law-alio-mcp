@@ -31,7 +31,7 @@ export async function getAlioStatistics(
     if (idx.flatRegulations.length === 0) {
       return {
         content: [
-          { type: "text", text: "수집된 ALIO 데이터가 없습니다. `npm run alio:sync` 로 먼저 수집하세요." },
+          { type: "text", text: "수집된 ALIO 데이터가 없습니다. `korean-law-alio-mcp fetch-data` 로 받아주세요." },
         ],
         isError: true,
       }

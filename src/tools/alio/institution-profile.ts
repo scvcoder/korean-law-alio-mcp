@@ -42,7 +42,7 @@ export async function getAlioInstitutionProfile(
         content: [
           {
             type: "text",
-            text: `[${inst.apbaId}] ${inst.apbaNa} — 수집된 규정이 없습니다. \`npm run alio:sync -- --only ${inst.apbaId}\` 로 수집하세요.`,
+            text: `[${inst.apbaId}] ${inst.apbaNa} — 받아진 규정이 없습니다. \`korean-law-alio-mcp fetch-data\` 로 전체 mirror 를 받아주세요.`,
           },
         ],
         isError: true,

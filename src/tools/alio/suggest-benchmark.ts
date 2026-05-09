@@ -54,7 +54,7 @@ export async function suggestAlioBenchmark(
         content: [
           {
             type: "text",
-            text: "비교할 피어 기관이 없습니다. `npm run alio:sync` 로 다른 기관 데이터를 추가 수집하세요.",
+            text: "비교할 피어 기관이 없습니다. `korean-law-alio-mcp fetch-data` 로 전체 mirror 를 다시 받아주세요.",
           },
         ],
         isError: true,

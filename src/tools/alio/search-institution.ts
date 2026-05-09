@@ -29,7 +29,7 @@ export async function searchInstitution(
         content: [
           {
             type: "text",
-            text: "ALIO 데이터가 아직 수집되지 않았습니다. `npm run alio:sync` 로 먼저 수집하세요.",
+            text: "ALIO 데이터가 아직 받아지지 않았습니다. `korean-law-alio-mcp fetch-data` 로 받아주세요.",
           },
         ],
         isError: true,
