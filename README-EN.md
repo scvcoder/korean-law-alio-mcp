@@ -92,7 +92,7 @@ All methods share one prerequisite — a **Korean Law portal API key (OC)**:
 
 > All examples below use `your-api-key-here` as a placeholder — replace with your issued key.
 
-### Prerequisite 2: Install Node.js
+### Prerequisite 2: Install Node.js (recommended)
 
 If you only use the remote MCP routes (Claude.ai web or Claude Desktop in remote mode), you don't need Node.js.
 
@@ -108,13 +108,8 @@ brew install node
 ```
 
 **Windows:**
-```powershell
-# Option A — winget (built into Windows 10/11)
-winget install OpenJS.NodeJS.LTS
 
-# Option B — Official installer
-# https://nodejs.org/en/download → download the LTS build
-```
+Visit the [Node.js official site](https://nodejs.org/en/download) and download the **LTS** `.msi` installer.
 
 **Linux (Ubuntu / Debian):**
 ```bash
@@ -128,29 +123,24 @@ node --version    # should show v20.x.x or later
 npx --version
 ```
 
-### Method 1: Claude Desktop / Cursor / Windsurf — `npx` auto-setup (most recommended)
-
-One line. The wizard auto-detects clients, writes the config, and downloads ALIO data — all in one go.
+### ⭐ Method 1: Claude Desktop / Cursor / Windsurf — `npx` auto-setup (most recommended)
 
 ```bash
 npx korean-law-alio-mcp setup
 ```
 
-The wizard walks you through:
-1. **API key** — the one issued at Step 0 (press Enter to skip and add it manually later)
-2. **Operating mode** — press Enter (default) → **local stdio** (recommended for stability)
-3. **Client multi-select** — Claude Desktop / Cursor / Windsurf / VS Code / Claude Code (`.mcp.json`), comma-separated
-4. **Auto handling**:
-   - Writes the stdio entry into each selected client's config file
-   - Downloads ~300 MB of ALIO data and extracts it (1-2 minutes)
+The setup wizard walks you through:
 
-After saving, **fully quit and reopen** the client (Claude Desktop: `Cmd+Q` / `Alt+F4` — closing the window is not enough).
+- **API key** — the one issued at Prerequisite 1
+- **Operating mode** — local (recommended) / remote
+- **Client selection** — Claude Desktop / Cursor / Windsurf / VS Code / Claude Code (multi-select supported)
+- **ALIO data (~300 MB) auto-download + extraction** (1-2 minutes)
 
-> **Want remote mode instead?** Pick option 2 in the wizard. Note: it depends on the maintainer's fly server, exposes you to Anthropic's [streamable-HTTP race bug](https://github.com/anthropics/claude-ai-mcp/issues/211), and may suffer cold-start timeouts. The remote server may be shut down or migrated due to operating costs. Prefer local for stability.
+After saving, you must **fully quit and reopen** the client.
 
 ### Method 2: Use directly in Claude.ai web (no install) Easiest
 
-Add a custom connector at [claude.ai](https://claude.ai). Requires Pro/Max/Team/Enterprise plan (Free plan limits to 1 connector).
+Add a custom connector at [claude.ai](https://claude.ai).
 
 **How to add the connector**:
 
@@ -163,18 +153,6 @@ Add a custom connector at [claude.ai](https://claude.ai). Requires Pro/Max/Team/
 5. Click "Add" → done
 
 **Activate tools (important)**: open the connector's "Configure" → set **all tools to "Always allow"**. The AI can then call them without per-request approval.
-
-Now ask in natural language:
-
-```
-"근로기준법 제74조 알려줘"                              → Korean Law (87 tools)
-"○○진흥원 인사규정 알려줘"                              → ALIO (23 tools)
-"○○진흥원 감사규정과 관련된 상위법령은 뭐니?"          → regulation → law linkage
-"근로기준법과 OO공단의 인사규정의 관계는 어떻게 되니?"  → law → regulation reverse lookup
-"공공기관 휴직 규정 비교해줘"                            → ALIO peer comparison
-```
-
-> ALIO data is periodically refreshed by the maintainer. Since ALIO does not provide an official API, real-time freshness is not guaranteed (periodic updates planned).
 
 ### Method 3: Claude Code Plugin — `/plugin install` one-liner
 

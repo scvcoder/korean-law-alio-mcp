@@ -92,7 +92,7 @@
 
 > 아래 모든 예시의 `your-api-key-here` 는 본인 발급 키로 교체하세요.
 
-### 사전 준비 2: Node.js 설치
+### 사전 준비 2: Node.js 설치 (권장)
 
 원격 MCP 방법 (Claude.ai 웹 또는 Claude Desktop 원격) 만 사용하면 Node.js 는 설치하지 않아도 됩니다.
 
@@ -108,13 +108,8 @@ brew install node
 ```
 
 **Windows:**
-```powershell
-# 옵션 A — winget (Windows 10/11 기본 탑재)
-winget install OpenJS.NodeJS.LTS
 
-# 옵션 B — 공식 인스톨러
-# https://nodejs.org/ko/download → LTS 버전 다운로드
-```
+[Node.js 공식 사이트](https://nodejs.org/ko/download) 에 접속해 **LTS 버전** `.msi` 인스톨러를 다운로드 후 설치.
 
 **Linux (Ubuntu / Debian):**
 ```bash
@@ -128,29 +123,24 @@ node --version    # v20.x.x 이상이 떠야 함
 npx --version
 ```
 
-### 방법 1: Claude Desktop / Cursor / Windsurf — `npx` 자동 설정 (가장 권장)
-
-한 줄이면 끝. 클라이언트 자동 감지 + 설정 파일 자동 작성 + ALIO 데이터 자동 다운로드까지.
+### ⭐ 방법 1: Claude Desktop / Cursor / Windsurf — `npx` 자동 설정 (가장 권장)
 
 ```bash
 npx korean-law-alio-mcp setup
 ```
 
-Wizard 가 차례로:
-1. **API 키 입력** — 위 0단계에서 발급한 키 (Enter 로 건너뛰면 나중에 직접 입력 가능)
-2. **운영 모드 선택** — Enter (기본) → **로컬 stdio** (안정성 권장)
-3. **클라이언트 다중 선택** — Claude Desktop / Cursor / Windsurf / VS Code / Claude Code (`.mcp.json`) 중 쉼표로 여러 개 가능
-4. **자동 처리**:
-   - 각 클라이언트의 설정 파일에 stdio 형태로 등록
-   - ALIO 데이터 ~300MB 자동 다운로드 + 압축 해제 (1-2분)
+설치 마법사가 차례로:
 
-저장 후 클라이언트 **완전 재시작** (Claude Desktop 은 `Cmd+Q` / `Alt+F4` — 창 닫기 X).
+- **API 키 입력** — 사전 준비 1 에서 발급한 키
+- **운영 모드 선택** — 로컬 (권장) / 원격 중 선택
+- **클라이언트 선택** — Claude Desktop / Cursor / Windsurf / VS Code / Claude Code (다중 선택 가능)
+- **ALIO 데이터 ~300MB 자동 다운로드 + 압축 해제** (1-2분)
 
-> **원격 모드를 원하면**: wizard 에서 옵션 2 선택. 단 운영자 fly 서버 의존 + Anthropic 측 [streamable-HTTP race 버그](https://github.com/anthropics/claude-ai-mcp/issues/211) + 콜드스타트 timeout 등 안정성 한계 있음. 운영비 문제로 종료/변경 가능. 안정성 우선이면 로컬 권장.
+저장 후 클라이언트 **완전 재시작** 해야 적용됨.
 
 ### 방법 2: Claude.ai 웹에서 바로 사용 (설치 없음) 가장 간편
 
-[claude.ai](https://claude.ai) 에서 커스텀 커넥터 추가. Claude Pro/Max/Team/Enterprise 요금제 필요 (Free는 커넥터 1개만 가능).
+[claude.ai](https://claude.ai) 에서 커스텀 커넥터 추가.
 
 **커넥터 추가 방법**:
 
@@ -163,18 +153,6 @@ Wizard 가 차례로:
 5. "추가" → 등록 완료
 
 **도구 활성화 (중요)**: 등록한 커넥터 "구성" 클릭 → 도구 목록에서 **모든 도구를 "항상 사용"** 으로 설정. 매번 승인 없이 AI가 바로 호출 가능.
-
-이제 채팅에서 자연어로:
-
-```
-"근로기준법 제74조 알려줘"                              → 법제처 87개 도구
-"○○진흥원 인사규정 알려줘"                              → ALIO 23개 도구
-"○○진흥원 감사규정과 관련된 상위법령은 뭐니?"          → 규정→법령 연계
-"근로기준법과 OO공단의 인사규정의 관계는 어떻게 되니?"  → 법령→규정 역검색
-"공공기관 휴직 규정 비교해줘"                            → ALIO 기관간 토픽 비교
-```
-
-> ALIO 데이터는 운영자가 주기적으로 갱신하지만, ALIO에서 별도 API를 제공하지 않아 실시간 최신 유지는 어렵습니다 (주기적 업데이트 예정).
 
 ### 방법 3: Claude Code 플러그인 — `/plugin install` 한 줄
 
