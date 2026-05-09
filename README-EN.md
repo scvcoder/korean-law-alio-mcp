@@ -111,7 +111,7 @@ brew install node
 **Windows:**
 
 ```powershell
-# Download and install the LTS build from https://nodejs.org/en/download
+# Download the LTS build from https://nodejs.org/en/download
 ```
 
 **Linux (Ubuntu / Debian):**
@@ -128,9 +128,12 @@ npx --version
 
 ### ⭐ Method 1: Claude Desktop / Cursor / Windsurf — `npx` auto-setup (most recommended)
 
-```bash
-npx korean-law-alio-mcp setup
-```
+> [!IMPORTANT]
+> **One line gets you fully set up.**
+>
+> ```bash
+> npx korean-law-alio-mcp setup
+> ```
 
 The setup wizard walks you through:
 
@@ -141,7 +144,7 @@ The setup wizard walks you through:
 
 After saving, you must **fully quit and reopen** the client.
 
-### Method 2: Use directly in Claude.ai web (no install) Easiest
+### Method 2: Use directly in Claude.ai web (simple)
 
 Add a custom connector at [claude.ai](https://claude.ai).
 
@@ -179,13 +182,14 @@ The plugin runs `npx -y korean-law-alio-mcp` with `LAW_OC` passed through. No co
 Developers can search Korean national law and public-institution regulations directly from the terminal.
 
 ```bash
-# Install
-npm install -g korean-law-alio-mcp
-
 # Set the API key (replace your-api-key-here with your own key)
 export LAW_OC=your-api-key-here     # Mac/Linux
 set LAW_OC=your-api-key-here        # Windows CMD
 $env:LAW_OC="your-api-key-here"    # Windows PowerShell
+
+# Register an alias — one-time (add to ~/.zshrc or ~/.bashrc to persist).
+# No global install needed; npx fetches the package on first run and reuses the cache afterwards.
+alias korean-law-alio='npx -y -p korean-law-alio-mcp korean-law-alio'
 
 # Examples
 korean-law-alio "민법 제1조"                                # Korean Law (natural language)
