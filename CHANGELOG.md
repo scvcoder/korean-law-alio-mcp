@@ -2,6 +2,46 @@
 
 ---
 
+## [1.0.3] - 2026-05-09
+
+> **`npm install -g` 사용자를 위한 ALIO 데이터 자동 받기 + README 다듬기**: `fetch-data` 서브커맨드 신설 — 글로벌 설치 후 코드와 별개로 ~300MB ALIO 데이터를 sudo 없이 사용자 홈에 받을 수 있게. README 도 v1.0.2 게시 후 누적된 정리 한꺼번에 반영.
+
+### Added
+
+- **`fetch-data` 서브커맨드 신설** ([src/scripts/fetch-data.ts](./src/scripts/fetch-data.ts)) — `npm install -g korean-law-alio-mcp` 만으로는 받지 못하던 ~300MB ALIO 데이터를 한 줄로 받게. 흐름:
+  ```bash
+  npm install -g korean-law-alio-mcp
+  korean-law-alio-mcp fetch-data
+  ```
+  - 기본 다운로드 위치: `~/.korean-law-alio-mcp/data/alio/` (사용자 홈 — sudo 불필요)
+  - `ALIO_DATA_DIR` 환경변수가 있으면 그 경로로
+  - 이미 데이터가 있으면 다운로드 스킵
+  - tar.gz 의 `alio/` 래퍼 자동 flatten — 716116b 와 동일 로직 재사용
+- **runtime ALIO 경로 해석에 user home fallback 추가** ([src/lib/alio/paths.ts](./src/lib/alio/paths.ts)) — 우선순위:
+  1. `ALIO_DATA_DIR` 환경변수
+  2. 패키지 루트의 `data/alio/` (dev clone / npx 캐시 / docker baked)
+  3. `~/.korean-law-alio-mcp/data/alio/` (npm install -g + fetch-data 시나리오)
+
+  → `fetch-data` 후 별도 환경변수 설정 없이 CLI/MCP 가 알아서 사용자 홈을 찾아냄.
+
+### Changed
+
+- **README 방법 4 (터미널/CLI)**: `npx + alias` 패턴 → `npm install -g` + `fetch-data` 3 줄 흐름. 별칭 등록 부담 제거, 매일 쓰는 사용자에게 더 자연스러움.
+- **README 방법 1 강조**: `npx korean-law-alio-mcp setup` 코드 블록을 GitHub `[!IMPORTANT]` callout 안에 임베드 — 보라색 좌측 테두리로 "설치 핵심" 시각 강조.
+- **README 구조 정비** (v1.0.2 publish 후 누적):
+  - 설치 가이드 5개 → 4개 (방법 4: 직접 설치 통합/제거)
+  - "방법 1 — 데스크탑/IDE npx" 가 가장 권장 (⭐ 표시), Claude.ai 웹 (방법 2), Claude Code 플러그인 (방법 3), 터미널 CLI (방법 4) 순
+  - 사전 준비 1: API 키 / 사전 준비 2: Node.js 설치 (권장) — 로컬 vs 원격 trade-off (속도/안정성) 명시
+  - 위임범위 검토 시나리오로 예시 query 교체 — 컴플라이언스 검토에 더 적합
+  - 헤더 `v1.0.2` → `v1.0.3`
+
+### Internal
+
+- `ensureAlioData(pkgRoot)` → `ensureAlioData(dataDir)` 로 시그니처 단순화 + export. 이제 setup wizard (패키지 루트) 와 fetch-data (사용자 홈) 양쪽이 같은 함수 재사용.
+- `index.ts` 에 `fetch-data` 서브커맨드 분기 추가 — `setup` 과 같은 패턴.
+
+---
+
 ## [1.0.2] - 2026-05-09
 
 > **로컬 모드 우선 권장**: setup wizard 의 모드 선택 순서를 **1) 로컬 / 2) 원격** 으로 swap, Enter(기본) 입력 시 로컬이 선택되도록. 원격 모드는 Anthropic 측 [#211 버그](https://github.com/anthropics/claude-ai-mcp/issues/211) + fly.io auto-suspend 콜드스타트로 첫 호출 timeout 빈발 → 사용자 경험상 로컬을 권장하는 입장 반영. 코드 동작/도구 추가 없음 — wizard messaging 만 변경.

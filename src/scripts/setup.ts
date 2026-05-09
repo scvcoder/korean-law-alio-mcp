@@ -240,12 +240,13 @@ async function extractTarGz(srcFile: string, destDir: string): Promise<void> {
 }
 
 /**
- * 패키지 루트의 data/alio/ 에 ALIO 데이터를 자동 준비.
+ * 지정된 디렉터리에 ALIO 데이터를 자동 준비.
  * - 이미 institutions.json 이 있으면 스킵
  * - 없으면 release tarball 다운로드 후 압축 해제
+ *
+ * @param dataDir 데이터를 둘 곳 (예: <pkg>/data/alio 또는 ~/.korean-law-alio-mcp/data/alio)
  */
-async function ensureAlioData(pkgRoot: string): Promise<{ skipped: boolean; sizeMb?: number }> {
-  const dataDir = join(pkgRoot, "data", "alio")
+export async function ensureAlioData(dataDir: string): Promise<{ skipped: boolean; sizeMb?: number }> {
   const sentinel = join(dataDir, "institutions.json")
 
   if (existsSync(sentinel)) {
@@ -405,7 +406,8 @@ export async function runSetup(): Promise<void> {
       console.log()
       try {
         const pkgRoot = packageRootFromBuildPath(mode.buildPath)
-        const result = await ensureAlioData(pkgRoot)
+        const dataDir = join(pkgRoot, "data", "alio")
+        const result = await ensureAlioData(dataDir)
         if (result.skipped) {
           ok("ALIO 데이터", "이미 존재 — 다운로드 스킵")
         } else {
@@ -414,11 +416,13 @@ export async function runSetup(): Promise<void> {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         fail("ALIO 데이터 자동 다운로드 실패", msg)
+        const pkgRoot = packageRootFromBuildPath(mode.buildPath)
+        const dataDir = join(pkgRoot, "data", "alio")
         console.log()
         console.log(`  ${c.dim}수동 fallback:${c.reset}`)
         console.log(`  ${c.dim}  curl -L -o /tmp/alio-data.tar.gz ${ALIO_RELEASE_URL}${c.reset}`)
-        console.log(`  ${c.dim}  mkdir -p "${packageRootFromBuildPath(mode.buildPath)}/data/alio"${c.reset}`)
-        console.log(`  ${c.dim}  tar -xzf /tmp/alio-data.tar.gz -C "${packageRootFromBuildPath(mode.buildPath)}/data/alio"${c.reset}`)
+        console.log(`  ${c.dim}  mkdir -p "${dataDir}"${c.reset}`)
+        console.log(`  ${c.dim}  tar -xzf /tmp/alio-data.tar.gz -C "${dataDir}"${c.reset}`)
       }
     }
 

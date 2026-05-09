@@ -2,10 +2,18 @@
  * ALIO 데이터 디렉터리 경로 해결
  *
  * 배치 스크립트와 런타임 인덱서가 같은 경로 체계를 쓰도록 중앙화.
- * 환경변수 ALIO_DATA_DIR 가 있으면 우선 사용(테스트용),
- * 없으면 패키지 루트 기준 data/alio 경로 사용.
+ *
+ * 해결 우선순위:
+ *   1. ALIO_DATA_DIR 환경변수 (테스트/명시 override)
+ *   2. 패키지 루트의 data/alio (dev clone / npx 캐시 / docker baked image)
+ *   3. 사용자 홈 ~/.korean-law-alio-mcp/data/alio (npm install -g + fetch-data)
+ *
+ * (2) 는 institutions.json 존재 여부로 판정 → 데이터가 거기 있으면 우선.
+ * 둘 다 없으면 (3) 을 반환해 fetch-data 가 어디로 받을지 알려주는 용도로도 사용.
  */
 
+import { existsSync } from "node:fs"
+import { homedir } from "node:os"
 import { fileURLToPath } from "node:url"
 import path from "node:path"
 
@@ -16,10 +24,22 @@ function resolvePackageRoot(): string {
   return path.resolve(path.dirname(here), "..", "..", "..")
 }
 
+/** 사용자 홈 기반 ALIO 데이터 디렉터리 (cross-platform). */
+export function userAlioDataDir(): string {
+  return path.join(homedir(), ".korean-law-alio-mcp", "data", "alio")
+}
+
 export function alioDataDir(): string {
+  // 1. 명시 override
   const override = process.env.ALIO_DATA_DIR
   if (override && override.trim()) return path.resolve(override.trim())
-  return path.join(resolvePackageRoot(), "data", "alio")
+
+  // 2. 패키지 루트에 데이터가 이미 있으면 그것 우선 (dev / npx / docker)
+  const pkgLocal = path.join(resolvePackageRoot(), "data", "alio")
+  if (existsSync(path.join(pkgLocal, "institutions.json"))) return pkgLocal
+
+  // 3. 사용자 홈 (npm install -g + fetch-data 시나리오)
+  return userAlioDataDir()
 }
 
 export function institutionsIndexPath(): string {

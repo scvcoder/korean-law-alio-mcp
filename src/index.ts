@@ -38,6 +38,14 @@ async function main() {
     return
   }
 
+  // fetch-data 서브커맨드: npm install -g 후 ALIO 데이터만 별도 다운로드
+  // 예: korean-law-alio-mcp fetch-data
+  if (args[0] === "fetch-data") {
+    const { runFetchData } = await import("./scripts/fetch-data.js")
+    await runFetchData()
+    return
+  }
+
   const modeIndex = args.indexOf("--mode")
   const mode = modeIndex !== -1 ? args[modeIndex + 1] : "stdio"
   const portIndex = args.indexOf("--port")

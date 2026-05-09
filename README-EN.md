@@ -32,7 +32,7 @@ May this help those who find legal access difficult, and the public-institution 
 
 ---
 
-## v1.0.2 — Bridging Public-Institution Regulations with Korean National Law
+## v1.0.3 — Bridging Public-Institution Regulations with Korean National Law
 
 On top of the upstream's 87 Korean-Law tools, this fork adds **23 ALIO public-institution tools + 3 tools that link the two areas** — 110 tools that search, compare, and analyze 1.27 GB of data (Korean Law portal + 35,000 public-institution internal regulations) through natural language.
 
@@ -182,14 +182,16 @@ The plugin runs `npx -y korean-law-alio-mcp` with `LAW_OC` passed through. No co
 Developers can search Korean national law and public-institution regulations directly from the terminal.
 
 ```bash
-# Set the API key (replace your-api-key-here with your own key)
+# 1) Global install (code ~250KB)
+npm install -g korean-law-alio-mcp
+
+# 2) Download ALIO data (~300MB, 1-2 min) — stored at ~/.korean-law-alio-mcp/data/alio/
+korean-law-alio-mcp fetch-data
+
+# 3) Set the API key (replace your-api-key-here with your own key)
 export LAW_OC=your-api-key-here     # Mac/Linux
 set LAW_OC=your-api-key-here        # Windows CMD
 $env:LAW_OC="your-api-key-here"    # Windows PowerShell
-
-# Register an alias — one-time (add to ~/.zshrc or ~/.bashrc to persist).
-# No global install needed; npx fetches the package on first run and reuses the cache afterwards.
-alias korean-law-alio='npx -y -p korean-law-alio-mcp korean-law-alio'
 
 # Examples
 korean-law-alio "민법 제1조"                                # Korean Law (natural language)
