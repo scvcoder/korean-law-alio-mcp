@@ -94,9 +94,10 @@
 
 ### 사전 준비 2: Node.js 설치 (권장)
 
-원격 MCP 방법 (Claude.ai 웹 또는 Claude Desktop 원격) 만 사용하면 Node.js 는 설치하지 않아도 됩니다.
-
-로컬 MCP 서버는 Node.js 를 설치해야 사용이 용이합니다 (**Node.js 20 이상** 필요).
+- **로컬 MCP 서버 사용 시** — Node.js 설치 권장 (**Node.js 20 이상** 필요)
+  → 설치는 귀찮지만 안정적 답변 + 속도 빠름
+- **원격 MCP 서버 사용 시** (Claude.ai 웹 또는 Claude Desktop 원격) — Node.js 설치 불필요
+  → 하지만 긴 요청 timeout + 속도 느림
 
 **macOS:**
 ```bash
@@ -109,7 +110,9 @@ brew install node
 
 **Windows:**
 
-[Node.js 공식 사이트](https://nodejs.org/ko/download) 에 접속해 **LTS 버전** `.msi` 인스톨러를 다운로드 후 설치.
+```powershell
+# https://nodejs.org/ko/download 에서 LTS 버전 다운로드 후 설치
+```
 
 **Linux (Ubuntu / Debian):**
 ```bash

@@ -94,9 +94,10 @@ All methods share one prerequisite — a **Korean Law portal API key (OC)**:
 
 ### Prerequisite 2: Install Node.js (recommended)
 
-If you only use the remote MCP routes (Claude.ai web or Claude Desktop in remote mode), you don't need Node.js.
-
-For local MCP servers, installing Node.js makes things much easier (**Node.js 20 or higher** is required).
+- **For local MCP servers** — installing Node.js is recommended (**Node.js 20 or higher** required)
+  → Setup is a small chore, but you get stable answers and faster responses.
+- **For remote MCP servers** (Claude.ai web or Claude Desktop in remote mode) — no Node.js needed
+  → But: long requests can time out and responses are slower.
 
 **macOS:**
 ```bash
@@ -109,7 +110,9 @@ brew install node
 
 **Windows:**
 
-Visit the [Node.js official site](https://nodejs.org/en/download) and download the **LTS** `.msi` installer.
+```powershell
+# Download and install the LTS build from https://nodejs.org/en/download
+```
 
 **Linux (Ubuntu / Debian):**
 ```bash
