@@ -241,24 +241,18 @@ async function extractTarGz(srcFile: string, destDir: string): Promise<void> {
 }
 
 /**
- * 지정된 디렉터리에 ALIO 데이터를 자동 준비.
- * - 기본: 이미 institutions.json 이 있으면 스킵 (idempotent)
- * - force=true: 이미 있어도 다운로드 → 성공 후 기존 데이터 삭제 + 압축 해제 (갱신)
- *   안전장치: 다운로드 실패 시 기존 데이터 보존 (다운로드 후에야 삭제)
+ * 지정된 디렉터리에 ALIO 데이터를 받아둠 (있으면 갱신, 없으면 신규).
+ * 안전장치: 다운로드 성공 후에야 기존 데이터 wipe → 압축 해제 (실패 시 기존 보존).
+ *
+ * 호출자가 "갱신할지 말지" 결정한 뒤 부르는 함수. 스킵 로직 없음.
  *
  * @param dataDir 데이터를 둘 곳 (예: <pkg>/data/alio 또는 ~/.korean-law-alio-mcp/data/alio)
- * @param options.force true 면 기존 데이터를 무시하고 갱신
  */
 export async function ensureAlioData(
-  dataDir: string,
-  options: { force?: boolean } = {}
-): Promise<{ skipped: boolean; refreshed?: boolean; sizeMb?: number }> {
+  dataDir: string
+): Promise<{ refreshed: boolean; sizeMb: number }> {
   const sentinel = join(dataDir, "institutions.json")
   const hadExisting = existsSync(sentinel)
-
-  if (hadExisting && !options.force) {
-    return { skipped: true }
-  }
 
   await mkdir(dataDir, { recursive: true })
   const tmpFile = join(tmpdir(), `alio-data-${Date.now()}.tar.gz`)
@@ -269,8 +263,8 @@ export async function ensureAlioData(
     console.log()
     await downloadFile(ALIO_RELEASE_URL, tmpFile)
 
-    // force 모드 + 기존 데이터: 다운로드 성공 후에야 wipe (실패 시 기존 보존)
-    if (hadExisting && options.force) {
+    // 기존 데이터: 다운로드 성공 후에야 wipe (실패 시 기존 보존)
+    if (hadExisting) {
       process.stderr.write(`    ${c.dim}기존 데이터 삭제 중...${c.reset}`)
       const entries = await readdir(dataDir)
       for (const entry of entries) {
@@ -307,7 +301,7 @@ export async function ensureAlioData(
     }
 
     const stat = await readFile(tmpFile).then((b) => b.byteLength).catch(() => 0)
-    return { skipped: false, refreshed: hadExisting, sizeMb: Math.round(stat / 1024 / 1024) }
+    return { refreshed: hadExisting, sizeMb: Math.round(stat / 1024 / 1024) }
   } finally {
     await rm(tmpFile, { force: true })
   }
@@ -436,16 +430,17 @@ export async function runSetup(): Promise<void> {
       }
     }
 
-    // ── (로컬 모드만) ALIO 데이터 자동 준비 ──
-    // 우선순위:
-    //   1) 패키지 루트의 data/alio 에 데이터가 이미 있으면 (dev clone) 그것 재사용
-    //   2) 그렇지 않으면 사용자 홈 (~/.korean-law-alio-mcp/data/alio) 에 받음
-    //      → npx 캐시가 새 버전마다 새 hash 디렉터리에 1.3GB 중복 다운로드되는 문제 회피.
-    //        runtime alioDataDir() 도 user home 폴백 인식하므로 별도 환경변수 설정 불필요.
+    // ── (로컬 모드만) ALIO 데이터 준비 ──
+    // 위치 우선순위:
+    //   1) 패키지 루트의 data/alio (dev clone — 데이터 이미 있으면 그것 재사용 유지)
+    //   2) 사용자 홈 ~/.korean-law-alio-mcp/data/alio (npm install -g / npx)
+    //      → runtime alioDataDir() 도 user home 폴백 인식하므로 별도 환경변수 설정 불필요.
+    //
+    // 기존 데이터 존재 시: prompt — 갱신할지 사용자에게 물음 (기본 갱신).
     let alioDataDestination: string | undefined
     if (mode.type === "local") {
       console.log()
-      console.log(`  ${c.cyan}${c.bold}[추가]${c.reset} ${c.white}${c.bold}ALIO 데이터 자동 준비${c.reset}`)
+      console.log(`  ${c.cyan}${c.bold}[추가]${c.reset} ${c.white}${c.bold}ALIO 데이터${c.reset}`)
       console.log()
       const pkgRoot = packageRootFromBuildPath(mode.buildPath)
       const pkgLocalData = join(pkgRoot, "data", "alio")
@@ -453,21 +448,36 @@ export async function runSetup(): Promise<void> {
         ? pkgLocalData
         : userAlioDataDir()
       alioDataDestination = dataDir
-      try {
-        const result = await ensureAlioData(dataDir)
-        if (result.skipped) {
-          ok("ALIO 데이터", `이미 존재 — 다운로드 스킵 (${dataDir})`)
-        } else {
-          ok("ALIO 데이터", `준비 완료${result.sizeMb ? ` (~${result.sizeMb}MB 다운로드)` : ""} → ${dataDir}`)
+
+      const hadExisting = existsSync(join(dataDir, "institutions.json"))
+      let proceed = true
+      if (hadExisting) {
+        console.log(`  ${c.dim}기존 데이터: ${dataDir}${c.reset}`)
+        const ans = await ask(
+          rl,
+          `  ${c.cyan}>${c.reset} 이전 ALIO 데이터가 있습니다. 최신 데이터로 갱신하겠습니까? [Y/n]: `
+        )
+        const trimmed = ans.toLowerCase()
+        if (trimmed === "n" || trimmed === "no" || trimmed === "아니오") {
+          proceed = false
+          ok("ALIO 데이터", `기존 유지 (${dataDir})`)
         }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        fail("ALIO 데이터 자동 다운로드 실패", msg)
-        console.log()
-        console.log(`  ${c.dim}수동 fallback:${c.reset}`)
-        console.log(`  ${c.dim}  curl -L -o /tmp/alio-data.tar.gz ${ALIO_RELEASE_URL}${c.reset}`)
-        console.log(`  ${c.dim}  mkdir -p "${dataDir}"${c.reset}`)
-        console.log(`  ${c.dim}  tar -xzf /tmp/alio-data.tar.gz -C "${dataDir}"${c.reset}`)
+      }
+
+      if (proceed) {
+        try {
+          const result = await ensureAlioData(dataDir)
+          const action = result.refreshed ? "갱신 완료" : "신규 받기 완료"
+          ok("ALIO 데이터", `${action}${result.sizeMb ? ` (~${result.sizeMb}MB)` : ""} → ${dataDir}`)
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          fail("ALIO 데이터 다운로드 실패", msg)
+          console.log()
+          console.log(`  ${c.dim}수동 fallback:${c.reset}`)
+          console.log(`  ${c.dim}  curl -L -o /tmp/alio-data.tar.gz ${ALIO_RELEASE_URL}${c.reset}`)
+          console.log(`  ${c.dim}  mkdir -p "${dataDir}"${c.reset}`)
+          console.log(`  ${c.dim}  tar -xzf /tmp/alio-data.tar.gz -C "${dataDir}"${c.reset}`)
+        }
       }
     }
 

@@ -46,6 +46,14 @@ async function main() {
     return
   }
 
+  // update 서브커맨드: 기존 설치 사용자의 코드(@latest) + ALIO 데이터 통합 갱신
+  // 예: npx korean-law-alio-mcp@latest update
+  if (args[0] === "update") {
+    const { runUpdate } = await import("./scripts/update.js")
+    await runUpdate()
+    return
+  }
+
   const modeIndex = args.indexOf("--mode")
   const mode = modeIndex !== -1 ? args[modeIndex + 1] : "stdio"
   const portIndex = args.indexOf("--port")

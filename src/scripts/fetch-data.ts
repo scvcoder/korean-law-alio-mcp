@@ -33,7 +33,7 @@ export async function runFetchData(): Promise<void> {
   const destDir = override?.trim() ? path.resolve(override.trim()) : userAlioDataDir()
 
   console.log()
-  console.log(`  ${c.bold}${c.cyan}ALIO 데이터 다운로드 (강제 갱신)${c.reset}`)
+  console.log(`  ${c.bold}${c.cyan}ALIO 데이터 다운로드${c.reset}`)
   console.log(`  ${c.dim}대상: ${destDir}${c.reset}`)
   if (override?.trim()) {
     console.log(`  ${c.dim}(ALIO_DATA_DIR 환경변수 존중)${c.reset}`)
@@ -42,7 +42,7 @@ export async function runFetchData(): Promise<void> {
   console.log()
 
   try {
-    const result = await ensureAlioData(destDir, { force: true })
+    const result = await ensureAlioData(destDir)
     const action = result.refreshed ? "갱신" : "신규 받기"
     console.log(
       `  ${c.green}✓${c.reset} ${action} 완료${result.sizeMb ? ` (~${result.sizeMb}MB)` : ""}`
