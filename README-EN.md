@@ -56,33 +56,32 @@ On top of the upstream's 87 Korean-Law tools, this fork adds **23 ALIO public-in
 
 - Analyzes the institution's HR regulation body and extracts cited upper laws
 - Looks up each cited law's identifier at the Korean Law portal and attaches it
-- Also matches internal upper regulations from the same institution
 
 Example outcome:
 
-> "Found about 10+ upper-law citations in the HR regulation body (e.g., general HR/labor laws, occupational safety laws, gender-equality laws, etc.). Identifiers are attached for follow-up lookups. An internal upper regulation from the same institution was also matched."
+> "Found about 10+ upper-law citations in the HR regulation body (e.g., general HR/labor laws, occupational safety laws, gender-equality laws, etc.). Identifiers are attached for follow-up lookups."
 
 ```
-"Check whether ○○ Corporation's OOO directive complies with the Labor Standards Act"
+"Check whether ○○ Corporation's OOO directive stays within the delegation scope of its parent laws"
 ```
 
 → Given the natural-language query, the AI automatically:
 
-- Reverse-searches citations of the given law (e.g., the Labor Standards Act) across 35,000 public-institution regulations
-- Compiles citation context (which article cites which clause, and how) for each matched directive
-- Groups results per institution
+- Extracts the delegation-basis articles (parent statute + enforcement decree/rule) cited in the directive's body
+- Looks up the parent law's delegating clause at the Korean Law portal — establishing the delegated subject and limits
+- Compares each article of the directive against that delegated scope and classifies them (within scope / potentially exceeds / no clear delegation basis)
 
 Example outcome:
 
-> "Citation cases of the law were detected across multiple institutions' directives. By comparing how each directive cites which clauses, the user can assess their own institution's compliance level."
+> "Articles X and Y of the directive fall within the scope delegated by Article Z of the parent statute. Article W, however, lacks an explicit delegation basis or may partially exceed the limits set by the parent — recommend review. Each item is presented alongside the relevant parent-statute citation."
 
-**Trace upper laws from public-institution rules in one shot — for compliance review, audits, and policy analysis.**
+**Trace from public-institution rules all the way up to the parent statute — for regulation maintenance, audits, and ultra-vires (delegation-overrun) checks.**
 
 ---
 
 ## Installation & Usage
 
-### Step 0: Get an API Key (free, 1 minute)
+### Prerequisite 1: Get an API Key (free, 1 minute)
 
 All methods share one prerequisite — a **Korean Law portal API key (OC)**:
 
@@ -91,16 +90,13 @@ All methods share one prerequisite — a **Korean Law portal API key (OC)**:
 3. Click "Open API 사용 신청" (apply for Open API access)
 4. Submit the form → receive your **OC key** (email-ID format)
 
-> All examples below use `your-api-key-here` as a placeholder — replace with your issued key. (Same convention as [`.env.example`](./.env.example))
+> All examples below use `your-api-key-here` as a placeholder — replace with your issued key.
 
-> **Recommended path**: For stability, **prefer local mode** (Methods 1, 3, 4). Choose Method 2 for the lightest possible try.
-> Local methods require Node.js — see [Prerequisite](#prerequisite--nodejs-for-methods-1-3-4).
+### Prerequisite 2: Install Node.js
 
-### Prerequisite — Node.js (for Methods 1, 3, 4)
+If you only use the remote MCP routes (Claude.ai web or Claude Desktop in remote mode), you don't need Node.js.
 
-> Skip this section if you only use Method 2 (Claude.ai web).
-
-This MCP server runs on Node.js. **Node.js 20 or higher** is required.
+For local MCP servers, installing Node.js makes things much easier (**Node.js 20 or higher** is required).
 
 **macOS:**
 ```bash
