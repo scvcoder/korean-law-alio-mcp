@@ -2,6 +2,38 @@
 
 ---
 
+## [1.0.5] - 2026-05-09
+
+> **Setup wizard UX 정리 + ALIO 데이터 갱신 인터랙션 추가**: 입력 필수화 / 디폴트값 자동 입력 / 기존 데이터 발견 시 prompt 갱신 / 잘못된 안내 정정.
+
+### Changed
+
+- **Setup wizard 입력 처리 강화**:
+  - **Step 1 (API 키)**: 필수 입력 — Enter skip 제거, 빈 값이면 빨간 경고 + 재요청 (Ctrl+C 로만 종료)
+  - **Step 2 (모드)**: `(기본 1)` → `[기본=1]` 표기 명확화
+  - **Step 3 (클라이언트)**: 감지된 항목들이 자동 디폴트 (예: `[기본=감지된 1,3]`). Enter → 디폴트 사용. `0` 입력 시만 manual 안내. 빈/잘못된 입력은 재요청
+- **ALIO 데이터 단계가 기존 데이터 발견 시 prompt 표시**:
+  - 이전: 무조건 스킵 → 사용자가 갱신하려면 별도 명령 필요
+  - 이후: `이전 ALIO 데이터가 있습니다. 최신 데이터로 갱신하겠습니까? [Y/n]:` (Enter / y / yes = 갱신, n / no / 아니오 = 기존 유지)
+  - 안전장치: 다운로드 성공한 뒤에야 기존 데이터 wipe (실패 시 기존 보존)
+- **`fetch-data` 항상 갱신**: 이전엔 데이터 있으면 스킵 → "rm + fetch-data" 두 단계 필요. 이후 fetch-data 호출 = 항상 갱신 (안전 교체).
+- **printComplete 가 install method 감지** ([src/scripts/setup.ts](./src/scripts/setup.ts)) — `import.meta.url` 경로로 npx / global / dev clone 구분해 알맞은 갱신 명령 표시:
+  - npx 사용자: `npx korean-law-alio-mcp@latest fetch-data`
+  - 글로벌 사용자: `korean-law-alio-mcp fetch-data`
+- **로컬 모드 안내 개선**: 실제 ALIO 데이터 destination 경로 표시 (이전엔 `data/alio/` 하드코딩)
+
+### Fixed
+
+- **도구 에러 메시지의 stale `npm run alio:sync` 안내 정정** (9개 파일) — npm install -g / npx 사용자에겐 동작 안 함. 모두 `korean-law-alio-mcp fetch-data` (또는 `npx ... fetch-data`) 로 정정. 영향 파일: recent-revisions, statistics, compare-timeline, compare-regulations, search-institution, suggest-benchmark, list-regulations, institution-profile, get-regulation.
+- **README Highlights** (`npm run alio:sync` → `korean-law-alio-mcp fetch-data`) — KO/EN 동기화
+
+### Internal
+
+- `ensureAlioData(dataDir, options?)` → `ensureAlioData(dataDir)` — `force` 옵션 제거. 이제 함수는 항상 다운로드 후 안전 교체. 호출자가 "갱신할지" 결정한 뒤 부르는 함수로 단순화.
+- `detectInstallMethod()` 헬퍼 신설 — printComplete 의 명령 표기에 사용.
+
+---
+
 ## [1.0.4] - 2026-05-09
 
 > **Setup wizard 가 ALIO 데이터를 npx 캐시 대신 사용자 홈에 받도록 — 버전 업그레이드마다 1.3GB 중복 다운로드 회피.**

@@ -9,7 +9,7 @@
       "name": "korean-law-alio",
       "source": "./",
       "description": "법제처 87 + ALIO 공공기관 23 = 110개 MCP 도구로 한국 법령·공공기관 내부규정을 자연어로 검색·비교·분석",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "homepage": "https://github.com/scvcoder/korean-law-alio-mcp",
       "license": "MIT",
       "mcpServers": {

@@ -1,6 +1,6 @@
 {
   "name": "korean-law-alio-mcp",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "국가법령정보센터(법제처) + ALIO 공공기관 규정 통합 MCP 서버 — 35,000건 이상의 법령·공공기관 내부규정을 자연어로 조회·비교·분석",
   "type": "module",
   "main": "build/index.js",
