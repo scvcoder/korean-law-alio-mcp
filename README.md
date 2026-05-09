@@ -144,6 +144,11 @@ npx --version
 
 저장 후 클라이언트 **완전 재시작** 해야 적용됨.
 
+> **참고 — 그 외 옵션**:
+>
+> - `npx korean-law-alio-mcp fetch-data` — ALIO 데이터만 별도 갱신 (다운로드 성공 후 안전 교체, 실패 시 기존 보존)
+> - `npx korean-law-alio-mcp uninstall` — 클라이언트 설정 + ALIO 데이터 + npx 캐시 일괄 정리 (기본 No prompt)
+
 ### 방법 2: Claude.ai 웹에서 바로 사용 (간편함)
 
 [claude.ai](https://claude.ai) 에서 커스텀 커넥터 추가.
