@@ -36,13 +36,13 @@ const NPM_PACKAGE = "korean-law-alio-mcp"
 const ALIO_RELEASE_URL =
   "https://github.com/scvcoder/korean-law-alio-mcp/releases/latest/download/alio-data.tar.gz"
 
-interface ClientConfig {
+export interface ClientConfig {
   readonly name: string
   readonly configPath: string
   readonly format: "mcpServers" // (Zed 의 context_servers 는 향후 추가)
 }
 
-function detectClients(): readonly ClientConfig[] {
+export function detectClients(): readonly ClientConfig[] {
   const home = homedir()
   const clients: ClientConfig[] = []
 

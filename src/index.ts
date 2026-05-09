@@ -47,6 +47,15 @@ async function main() {
     return
   }
 
+  // uninstall 서브커맨드: 클라이언트 설정 항목 + ALIO 데이터 + npx 캐시 일괄 정리
+  // 예: npx korean-law-alio-mcp@latest uninstall
+  //     korean-law-alio-mcp uninstall   (글로벌 설치)
+  if (args[0] === "uninstall") {
+    const { runUninstall } = await import("./scripts/uninstall.js")
+    await runUninstall()
+    return
+  }
+
   const modeIndex = args.indexOf("--mode")
   const mode = modeIndex !== -1 ? args[modeIndex + 1] : "stdio"
   const portIndex = args.indexOf("--port")
