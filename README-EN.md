@@ -32,24 +32,19 @@ May this help those who find legal access difficult, and the public-institution 
 
 ---
 
-## v1.0.0 — Bridging Public-Institution Regulations with Korean National Law
+## v1.0.2 — Bridging Public-Institution Regulations with Korean National Law
 
 On top of the upstream's 87 Korean-Law tools, this fork adds **23 ALIO public-institution tools + 3 tools that link the two areas** — 110 tools that search, compare, and analyze 1.27 GB of data (Korean Law portal + 35,000 public-institution internal regulations) through natural language.
 
 ### What this fork adds
 
-- **23 ALIO tools** — integrates 35,000 internal regulations from 344 Korean public institutions (HWP/HWPX/PDF/XLSX auto-converted via the kordoc unified parser; on-demand disk reads)
+- **23 ALIO tools** — integrates 35,000 internal regulations from 344 Korean public institutions
 - **3 tools that link public-institution regulations with Korean national laws**
   - Auto-extracts upper laws cited in a public-institution regulation's body and looks up each law's identifier at the Korean Law portal
   - Given a Korean Law portal statute, reverse-looks up the public-institution regulations across the country that cite it
   - Analyzes how articles within a single regulation cite/refer to one another
-- **Natural-language routing** — canonical institution-name auto lookup (synchronous load of `institutions.json`), automatic branching across both areas
-- **Clear API auth-failure guidance** — unified across 12 fetch sites; when IP/domain whitelisting blocks the request, the user is pointed to the registration page
 - **Setup wizard** — `npx korean-law-alio-mcp setup` (API key → operating mode → multi-client selection → config auto-registration)
-- **fly.io remote deployment** — `https://korean-law-alio-mcp.fly.dev` (110 tools + ALIO data mirror, best-effort refresh)
-- **CLI surface polish** — `list`/`help`/`--category`/`explain`/REPL + bare-query natural language
-- **168-case test suite** — build 6 + router 13 + cli 23 + alio 39 + law 87 (`npm test`)
-- **License hygiene** — 4 files clean-room rewritten, zero BSL/Source-Available code
+- **fly.io remote MCP** — `https://korean-law-alio-mcp.fly.dev` (110 tools + ALIO data; best-effort to keep it running)
 
 ### Example — natural-language queries that span both areas
 
