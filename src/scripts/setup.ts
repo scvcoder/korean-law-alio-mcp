@@ -20,15 +20,20 @@
 
 import { createInterface } from "node:readline/promises"
 import { stdin, stdout } from "node:process"
-import { existsSync } from "node:fs"
-import { readFile, writeFile, mkdir } from "node:fs/promises"
-import { resolve, dirname } from "node:path"
-import { homedir } from "node:os"
+import { createWriteStream, existsSync } from "node:fs"
+import { readFile, writeFile, mkdir, rm, readdir, rename } from "node:fs/promises"
+import { resolve, dirname, join } from "node:path"
+import { homedir, tmpdir } from "node:os"
 import { fileURLToPath } from "node:url"
+import { spawn } from "node:child_process"
+import { Readable } from "node:stream"
+import { pipeline } from "node:stream/promises"
 
 const REMOTE_URL = "https://korean-law-alio-mcp.fly.dev/mcp"
 const SERVER_NAME = "korean-law-alio"
 const NPM_PACKAGE = "korean-law-alio-mcp"
+const ALIO_RELEASE_URL =
+  "https://github.com/scvcoder/korean-law-alio-mcp/releases/latest/download/alio-data.tar.gz"
 
 interface ClientConfig {
   readonly name: string
@@ -168,6 +173,128 @@ function detectLocalBuild(): string | null {
   return existsSync(indexPath) ? indexPath : null
 }
 
+/** buildPath(`<root>/build/index.js`) 로부터 패키지 루트 추출 */
+function packageRootFromBuildPath(buildPath: string): string {
+  return resolve(dirname(buildPath), "..")
+}
+
+// ─────────────────────────────────────────
+// ALIO 데이터 자동 다운로드
+// ─────────────────────────────────────────
+
+/**
+ * GitHub releases 의 alio-data.tar.gz 를 스트리밍 다운로드.
+ * 진행률을 한 줄로 in-place 갱신해서 표시.
+ */
+async function downloadFile(url: string, dest: string): Promise<void> {
+  const res = await fetch(url, { redirect: "follow" })
+  if (!res.ok || !res.body) {
+    throw new Error(`다운로드 실패: HTTP ${res.status} ${res.statusText}`)
+  }
+
+  const total = parseInt(res.headers.get("content-length") || "0", 10)
+  let downloaded = 0
+  let lastShown = -1
+
+  const fileStream = createWriteStream(dest)
+  const nodeStream = Readable.fromWeb(res.body as Parameters<typeof Readable.fromWeb>[0])
+
+  nodeStream.on("data", (chunk: Buffer) => {
+    downloaded += chunk.length
+    if (total > 0) {
+      const pct = Math.floor((downloaded / total) * 100)
+      if (pct !== lastShown && (pct % 2 === 0 || pct === 100)) {
+        const mb = (downloaded / 1024 / 1024).toFixed(1)
+        const totalMb = (total / 1024 / 1024).toFixed(1)
+        process.stderr.write(
+          `\r    ${c.dim}다운로드 중...${c.reset} ${c.cyan}${pct}%${c.reset} ${c.dim}(${mb}MB / ${totalMb}MB)${c.reset}${" ".repeat(10)}`
+        )
+        lastShown = pct
+      }
+    }
+  })
+
+  await pipeline(nodeStream, fileStream)
+  process.stderr.write("\n")
+}
+
+/**
+ * tar.gz 압축 해제 (system tar 명령 사용 — macOS/Linux 기본 탑재, Win10 1803+ 도 BSD tar 빌트인).
+ * tar 가 없는 환경에서는 명확한 에러로 fallback 안내 가능.
+ */
+async function extractTarGz(srcFile: string, destDir: string): Promise<void> {
+  await mkdir(destDir, { recursive: true })
+  return new Promise<void>((resolveP, reject) => {
+    const proc = spawn("tar", ["-xzf", srcFile, "-C", destDir], { stdio: "ignore" })
+    proc.on("error", (err: NodeJS.ErrnoException) => {
+      if (err.code === "ENOENT") {
+        reject(new Error("'tar' 명령을 찾을 수 없습니다. macOS/Linux 또는 Win10 1803+ 가 필요합니다."))
+      } else {
+        reject(err)
+      }
+    })
+    proc.on("exit", (code) =>
+      code === 0 ? resolveP() : reject(new Error(`tar 압축 해제 실패 (exit code ${code})`))
+    )
+  })
+}
+
+/**
+ * 패키지 루트의 data/alio/ 에 ALIO 데이터를 자동 준비.
+ * - 이미 institutions.json 이 있으면 스킵
+ * - 없으면 release tarball 다운로드 후 압축 해제
+ */
+async function ensureAlioData(pkgRoot: string): Promise<{ skipped: boolean; sizeMb?: number }> {
+  const dataDir = join(pkgRoot, "data", "alio")
+  const sentinel = join(dataDir, "institutions.json")
+
+  if (existsSync(sentinel)) {
+    return { skipped: true }
+  }
+
+  await mkdir(dataDir, { recursive: true })
+  const tmpFile = join(tmpdir(), `alio-data-${Date.now()}.tar.gz`)
+
+  try {
+    console.log(`  ${c.dim}소스: ${ALIO_RELEASE_URL}${c.reset}`)
+    console.log(`  ${c.dim}대상: ${dataDir}${c.reset}`)
+    console.log()
+    await downloadFile(ALIO_RELEASE_URL, tmpFile)
+
+    process.stderr.write(`    ${c.dim}압축 해제 중...${c.reset}`)
+    await extractTarGz(tmpFile, dataDir)
+    process.stderr.write(`\r    ${c.green}✓${c.reset} ${c.dim}압축 해제 완료${c.reset}${" ".repeat(40)}\n`)
+
+    // tarball 의 실제 구조: 최상위가 alio/ → 압축 해제 시 dataDir/alio/* 가 됨.
+    // 우리는 dataDir 자체가 이미 data/alio 이므로 flatten 필요.
+    // 향후 tarball 구조 변경 (data/alio/, 평탄, 등) 도 자동 적응.
+    if (!existsSync(sentinel)) {
+      const candidates = [
+        join(dataDir, "data", "alio", "institutions.json"),
+        join(dataDir, "alio", "institutions.json"),
+      ]
+      for (const cand of candidates) {
+        if (existsSync(cand)) {
+          const innerDir = dirname(cand)
+          const entries = await readdir(innerDir)
+          for (const entry of entries) {
+            await rename(join(innerDir, entry), join(dataDir, entry))
+          }
+          // 빈 wrapper 디렉터리 정리 (alio/ 또는 data/)
+          const topRel = cand.includes(`${dataDir}/data/`) ? "data" : "alio"
+          await rm(join(dataDir, topRel), { recursive: true, force: true })
+          break
+        }
+      }
+    }
+
+    const stat = await readFile(tmpFile).then((b) => b.byteLength).catch(() => 0)
+    return { skipped: false, sizeMb: Math.round(stat / 1024 / 1024) }
+  } finally {
+    await rm(tmpFile, { force: true })
+  }
+}
+
 // ─────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────
@@ -271,6 +398,30 @@ export async function runSetup(): Promise<void> {
       }
     }
 
+    // ── (로컬 모드만) ALIO 데이터 자동 준비 ──
+    if (mode.type === "local") {
+      console.log()
+      console.log(`  ${c.cyan}${c.bold}[추가]${c.reset} ${c.white}${c.bold}ALIO 데이터 자동 준비${c.reset}`)
+      console.log()
+      try {
+        const pkgRoot = packageRootFromBuildPath(mode.buildPath)
+        const result = await ensureAlioData(pkgRoot)
+        if (result.skipped) {
+          ok("ALIO 데이터", "이미 존재 — 다운로드 스킵")
+        } else {
+          ok("ALIO 데이터", `준비 완료${result.sizeMb ? ` (~${result.sizeMb}MB 다운로드)` : ""}`)
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        fail("ALIO 데이터 자동 다운로드 실패", msg)
+        console.log()
+        console.log(`  ${c.dim}수동 fallback:${c.reset}`)
+        console.log(`  ${c.dim}  curl -L -o /tmp/alio-data.tar.gz ${ALIO_RELEASE_URL}${c.reset}`)
+        console.log(`  ${c.dim}  mkdir -p "${packageRootFromBuildPath(mode.buildPath)}/data/alio"${c.reset}`)
+        console.log(`  ${c.dim}  tar -xzf /tmp/alio-data.tar.gz -C "${packageRootFromBuildPath(mode.buildPath)}/data/alio"${c.reset}`)
+      }
+    }
+
     printComplete(apiKey, mode)
   } finally {
     rl.close()
@@ -294,11 +445,9 @@ function printComplete(apiKey: string, mode: InstallMode): void {
   }
 
   if (mode.type === "local") {
-    console.log(`  ${c.bold}다음 단계 — ALIO 데이터 준비${c.reset}`)
-    console.log(`  ${c.dim}로컬 모드는 자기 PC 에 ALIO 데이터를 보관해야 합니다:${c.reset}`)
-    console.log(`  ${c.dim}  • 직접 sync (6-12시간):     npm run alio:sync${c.reset}`)
+    console.log(`  ${c.dim}로컬 모드 — ALIO 데이터는 패키지 루트 ${c.bold}data/alio/${c.reset}${c.dim} 에 보관됩니다.${c.reset}`)
     console.log(
-      `  ${c.dim}  • Releases mirror (5-15분):  github.com/scvcoder/korean-law-alio-mcp/releases${c.reset}`
+      `  ${c.dim}최신 데이터로 갱신하려면: ${c.bold}npm run alio:sync${c.reset}${c.dim} (6-12시간) 또는 setup wizard 재실행 후 data/alio 삭제${c.reset}`
     )
     console.log()
   } else {
