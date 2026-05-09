@@ -1,8 +1,5 @@
 # Changelog — `korean-law-alio-mcp`
 
-> 본 fork 는 2026-04-25 일자로 [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp) v2.2 에서 fork 되었습니다.
-> **본 파일은 fork 이후의 변경 이력만 담습니다.** v2.2.0 까지의 원작자 변경 이력은 [CHANGELOG-UPSTREAM.md](./CHANGELOG-UPSTREAM.md) 참고.
-
 ---
 
 ## [1.0.1] - 2026-05-09
@@ -48,6 +45,9 @@
 ---
 
 ## [1.0.0] - 2026-04-26
+
+> 본 fork 는 2026-04-25 일자로 [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp) v2.2 에서 fork 되었습니다.
+> **본 파일은 fork 이후의 변경 이력만 담습니다.** v2.2.0 까지의 원작자 변경 이력은 [CHANGELOG-UPSTREAM.md](./CHANGELOG-UPSTREAM.md) 참고.
 
 > **Fork + 리네이밍**: `korean-law-mcp` → `korean-law-alio-mcp`
 > 법제처 87개 도구 위에 ALIO 공공기관 내부규정 통합 + 라이선스 위생 + 일반화 작업.
