@@ -174,6 +174,21 @@ function detectLocalBuild(): string | null {
   return existsSync(indexPath) ? indexPath : null
 }
 
+/**
+ * 현재 실행 위치로부터 설치 방식 추측.
+ * - npx: ~/.npm/_npx/<hash>/node_modules/... → 'npx'
+ * - npm install -g: /usr/local/lib/node_modules/... 또는 ~/.nvm/.../lib/node_modules/... → 'global'
+ * - dev clone: 위 둘 다 아님 → 'dev'
+ *
+ * printComplete 메시지에 적합한 명령 형태(npx prefix 여부)를 결정하기 위함.
+ */
+function detectInstallMethod(): "npx" | "global" | "dev" {
+  const here = fileURLToPath(import.meta.url)
+  if (here.includes("/.npm/_npx/")) return "npx"
+  if (here.includes("/lib/node_modules/")) return "global"
+  return "dev"
+}
+
 /** buildPath(`<root>/build/index.js`) 로부터 패키지 루트 추출 */
 function packageRootFromBuildPath(buildPath: string): string {
   return resolve(dirname(buildPath), "..")
@@ -505,9 +520,14 @@ function printComplete(apiKey: string, mode: InstallMode, dataDir?: string): voi
 
   if (mode.type === "local") {
     const dest = dataDir ?? userAlioDataDir()
+    const method = detectInstallMethod()
+    const refreshCmd =
+      method === "npx"
+        ? "npx korean-law-alio-mcp@latest fetch-data"
+        : "korean-law-alio-mcp fetch-data"
     console.log(`  ${c.dim}로컬 모드 — ALIO 데이터 위치: ${c.bold}${dest}${c.reset}`)
     console.log(
-      `  ${c.dim}최신 데이터로 갱신: ${c.bold}korean-law-alio-mcp fetch-data${c.reset}${c.dim} (한 줄로 자동 갱신)${c.reset}`
+      `  ${c.dim}최신 데이터로 갱신: ${c.bold}${refreshCmd}${c.reset}${c.dim} (한 줄로 자동 갱신)${c.reset}`
     )
     console.log()
   } else {

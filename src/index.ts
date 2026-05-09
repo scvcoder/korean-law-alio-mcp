@@ -38,19 +38,12 @@ async function main() {
     return
   }
 
-  // fetch-data 서브커맨드: npm install -g 후 ALIO 데이터만 별도 다운로드
-  // 예: korean-law-alio-mcp fetch-data
+  // fetch-data 서브커맨드: ALIO 데이터 다운로드 / 갱신
+  // 예: korean-law-alio-mcp fetch-data            (글로벌 설치)
+  //     npx korean-law-alio-mcp@latest fetch-data (npx 사용자)
   if (args[0] === "fetch-data") {
     const { runFetchData } = await import("./scripts/fetch-data.js")
     await runFetchData()
-    return
-  }
-
-  // update 서브커맨드: 기존 설치 사용자의 코드(@latest) + ALIO 데이터 통합 갱신
-  // 예: npx korean-law-alio-mcp@latest update
-  if (args[0] === "update") {
-    const { runUpdate } = await import("./scripts/update.js")
-    await runUpdate()
     return
   }
 
