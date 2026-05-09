@@ -329,19 +329,19 @@ export async function runSetup(): Promise<void> {
     // ── Step 2: 운영 모드 ──
     stepHeader(2, 4, "운영 모드 선택")
     const localBuild = detectLocalBuild()
-    console.log(`  ${c.cyan}1${c.reset}) ${c.white}원격 모드${c.reset}    ${c.dim}— 운영자 fly 서버 사용 (${REMOTE_URL})${c.reset}`)
-    console.log(`     ${c.dim}즉시 110개 도구 + ALIO 데이터 mirror 사용 (best-effort 갱신)${c.reset}`)
     if (localBuild) {
-      console.log(`  ${c.cyan}2${c.reset}) ${c.white}로컬 모드${c.reset}  ${c.dim}— stdio + ${localBuild}${c.reset}`)
+      console.log(`  ${c.cyan}1${c.reset}) ${c.white}로컬 모드${c.reset}  ${c.dim}— stdio + ${localBuild}${c.reset}`)
       console.log(`     ${c.dim}자기 PC 에서 실행${c.reset}`)
     } else {
-      console.log(`  ${c.dim}2) 로컬 모드 — 빌드 미감지 (npm run build 후 다시 실행)${c.reset}`)
+      console.log(`  ${c.dim}1) 로컬 모드 — 빌드 미감지 (npm run build 후 다시 실행)${c.reset}`)
     }
+    console.log(`  ${c.cyan}2${c.reset}) ${c.white}원격 모드${c.reset}    ${c.dim}— 운영자 fly 서버 사용 (${REMOTE_URL})${c.reset}`)
+    console.log(`     ${c.dim}즉시 110개 도구 + ALIO 데이터 mirror 사용 (best-effort 갱신)${c.reset}`)
     console.log()
     const modeInput = (await ask(rl, `  ${c.cyan}>${c.reset} 번호 (기본 1): `)) || "1"
 
     let mode: InstallMode
-    if (modeInput === "2" && localBuild) {
+    if (modeInput === "1" && localBuild) {
       mode = { type: "local", buildPath: localBuild }
       ok("로컬 모드", localBuild)
     } else {
