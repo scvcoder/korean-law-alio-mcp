@@ -369,12 +369,21 @@ export async function runSetup(): Promise<void> {
     console.log(`  ${c.cyan}2${c.reset}) ${c.white}원격 모드${c.reset}    ${c.dim}— 운영자 fly 서버 사용 (${REMOTE_URL})${c.reset}`)
     console.log(`     ${c.dim}즉시 110개 도구 + ALIO 데이터 mirror 사용 (best-effort 갱신)${c.reset}`)
     console.log()
-    const modeInput = (await ask(rl, `  ${c.cyan}>${c.reset} 번호 [기본=1]: `)) || "1"
+    let modeInput = ""
+    while (true) {
+      modeInput = (await ask(rl, `  ${c.cyan}>${c.reset} 번호 [기본=1]: `)) || "1"
+      if (modeInput === "1" || modeInput === "2") break
+      console.log(`  ${c.red}!${c.reset} 1 또는 2 만 입력 가능합니다. 다시 입력하세요.`)
+    }
 
     let mode: InstallMode
     if (modeInput === "1" && localBuild) {
       mode = { type: "local", buildPath: localBuild }
       ok("로컬 모드", localBuild)
+    } else if (modeInput === "1" && !localBuild) {
+      // 로컬 빌드 미감지 → 자동 원격 fallback (사용자에게 명시)
+      mode = { type: "remote", url: REMOTE_URL }
+      ok("원격 모드 (로컬 빌드 미감지로 자동 전환)", REMOTE_URL)
     } else {
       mode = { type: "remote", url: REMOTE_URL }
       ok("원격 모드", REMOTE_URL)
@@ -415,10 +424,19 @@ export async function runSetup(): Promise<void> {
         printManualConfig(apiKey, mode)
         return
       }
-      indices = clientInput
-        .split(",")
-        .map((s) => parseInt(s.trim(), 10) - 1)
-        .filter((i) => i >= 0 && i < clients.length)
+      // 모든 토큰 검증 — 하나라도 잘못된 번호면 재요청
+      const tokens = clientInput.split(",").map((s) => s.trim()).filter(Boolean)
+      const parsed = tokens.map((t) => ({ token: t, idx: parseInt(t, 10) - 1 }))
+      const invalid = parsed.filter(
+        (p) => !/^\d+$/.test(p.token) || p.idx < 0 || p.idx >= clients.length
+      )
+      if (invalid.length > 0) {
+        console.log(
+          `  ${c.red}!${c.reset} 유효하지 않은 번호: ${invalid.map((p) => p.token).join(", ")}. 1~${clients.length} 범위로 다시 입력하세요.`
+        )
+        continue
+      }
+      indices = parsed.map((p) => p.idx)
       if (indices.length === 0) {
         console.log(`  ${c.red}!${c.reset} 유효한 번호가 없습니다. 다시 입력하세요.`)
         continue
