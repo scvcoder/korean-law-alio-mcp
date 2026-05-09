@@ -2,6 +2,24 @@
 
 ---
 
+## [1.0.2] - 2026-05-09
+
+> **로컬 모드 우선 권장**: setup wizard 의 모드 선택 순서를 **1) 로컬 / 2) 원격** 으로 swap, Enter(기본) 입력 시 로컬이 선택되도록. 원격 모드는 Anthropic 측 [#211 버그](https://github.com/anthropics/claude-ai-mcp/issues/211) + fly.io auto-suspend 콜드스타트로 첫 호출 timeout 빈발 → 사용자 경험상 로컬을 권장하는 입장 반영. 코드 동작/도구 추가 없음 — wizard messaging 만 변경.
+
+### Changed
+
+- **모드 선택 순서 swap — 1) 로컬, 2) 원격** ([75faa81](https://github.com/scvcoder/korean-law-alio-mcp/commit/75faa81)) — Enter(기본) 입력 시 이전엔 원격이 선택됐으나 이제 로컬 선택. 로컬 빌드 미감지 시에는 자동 원격 fallback 유지 (else 분기) — `npx korean-law-alio-mcp setup` 같은 일회성 호출에선 여전히 원격이 자연스럽게 선택됨.
+- **원격 모드 안내 문구 갱신** ([068c0aa](https://github.com/scvcoder/korean-law-alio-mcp/commit/068c0aa)) — 운영 책임/한계를 명시적으로:
+  - 이전: `best-effort 사용 / 응답의 fetchedAt 으로 시점 확인 권장. 자세한 책임 분담은 NOTICE 참고`
+  - 이후: `주기적으로 갱신하고 mcp 서버를 운영 / 운영비 문제로 종료 또는 서버가 변경될 수 있음`
+- **로컬 모드 안내 간결화** ([b3086bd](https://github.com/scvcoder/korean-law-alio-mcp/commit/b3086bd)) — `(이 빌드)` 표기 제거 (사용자에게 의미 불명확), `자기 PC 에서 실행 — ALIO 데이터 별도 준비 필요` → `자기 PC 에서 실행` (716116b 부터 ALIO 데이터 자동 다운로드되어 별도 준비 불필요).
+
+### Background
+
+본 fork 의 운영자는 사용자에게 **로컬 모드를 권장하는 입장**. 원격 모드는 운영자 부담 + 안정성 한계 (#211, 콜드스타트 timeout) 가 있어 wizard 의 default 도 로컬로 정렬. 원격 안정성이 개선되면 (Anthropic fix 또는 우리 인프라 변경) 본 정책 재검토 가능.
+
+---
+
 ## [1.0.1] - 2026-05-09
 
 > **데스크탑 호환성 + 로컬 설치 자동화**: Claude.ai 원격 MCP / Claude Desktop 의 streamable-HTTP transport 호환성 이슈 해결, 로컬 모드 setup 의 마지막 수동 단계 (ALIO 데이터 다운로드) 자동화. 새 도구 추가 없음 — 호환성 + UX 개선.
