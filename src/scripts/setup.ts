@@ -242,15 +242,21 @@ async function extractTarGz(srcFile: string, destDir: string): Promise<void> {
 
 /**
  * 지정된 디렉터리에 ALIO 데이터를 자동 준비.
- * - 이미 institutions.json 이 있으면 스킵
- * - 없으면 release tarball 다운로드 후 압축 해제
+ * - 기본: 이미 institutions.json 이 있으면 스킵 (idempotent)
+ * - force=true: 이미 있어도 다운로드 → 성공 후 기존 데이터 삭제 + 압축 해제 (갱신)
+ *   안전장치: 다운로드 실패 시 기존 데이터 보존 (다운로드 후에야 삭제)
  *
  * @param dataDir 데이터를 둘 곳 (예: <pkg>/data/alio 또는 ~/.korean-law-alio-mcp/data/alio)
+ * @param options.force true 면 기존 데이터를 무시하고 갱신
  */
-export async function ensureAlioData(dataDir: string): Promise<{ skipped: boolean; sizeMb?: number }> {
+export async function ensureAlioData(
+  dataDir: string,
+  options: { force?: boolean } = {}
+): Promise<{ skipped: boolean; refreshed?: boolean; sizeMb?: number }> {
   const sentinel = join(dataDir, "institutions.json")
+  const hadExisting = existsSync(sentinel)
 
-  if (existsSync(sentinel)) {
+  if (hadExisting && !options.force) {
     return { skipped: true }
   }
 
@@ -262,6 +268,16 @@ export async function ensureAlioData(dataDir: string): Promise<{ skipped: boolea
     console.log(`  ${c.dim}대상: ${dataDir}${c.reset}`)
     console.log()
     await downloadFile(ALIO_RELEASE_URL, tmpFile)
+
+    // force 모드 + 기존 데이터: 다운로드 성공 후에야 wipe (실패 시 기존 보존)
+    if (hadExisting && options.force) {
+      process.stderr.write(`    ${c.dim}기존 데이터 삭제 중...${c.reset}`)
+      const entries = await readdir(dataDir)
+      for (const entry of entries) {
+        await rm(join(dataDir, entry), { recursive: true, force: true })
+      }
+      process.stderr.write(`\r    ${c.green}✓${c.reset} ${c.dim}기존 데이터 삭제 완료${c.reset}${" ".repeat(40)}\n`)
+    }
 
     process.stderr.write(`    ${c.dim}압축 해제 중...${c.reset}`)
     await extractTarGz(tmpFile, dataDir)
@@ -291,7 +307,7 @@ export async function ensureAlioData(dataDir: string): Promise<{ skipped: boolea
     }
 
     const stat = await readFile(tmpFile).then((b) => b.byteLength).catch(() => 0)
-    return { skipped: false, sizeMb: Math.round(stat / 1024 / 1024) }
+    return { skipped: false, refreshed: hadExisting, sizeMb: Math.round(stat / 1024 / 1024) }
   } finally {
     await rm(tmpFile, { force: true })
   }
@@ -481,7 +497,7 @@ function printComplete(apiKey: string, mode: InstallMode, dataDir?: string): voi
     const dest = dataDir ?? userAlioDataDir()
     console.log(`  ${c.dim}로컬 모드 — ALIO 데이터 위치: ${c.bold}${dest}${c.reset}`)
     console.log(
-      `  ${c.dim}최신 데이터로 갱신하려면: 위 디렉터리 삭제 후 ${c.bold}korean-law-alio-mcp fetch-data${c.reset}${c.dim} 또는 setup wizard 재실행${c.reset}`
+      `  ${c.dim}최신 데이터로 갱신: ${c.bold}korean-law-alio-mcp fetch-data${c.reset}${c.dim} (한 줄로 자동 갱신)${c.reset}`
     )
     console.log()
   } else {

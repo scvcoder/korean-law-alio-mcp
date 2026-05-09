@@ -33,22 +33,20 @@ export async function runFetchData(): Promise<void> {
   const destDir = override?.trim() ? path.resolve(override.trim()) : userAlioDataDir()
 
   console.log()
-  console.log(`  ${c.bold}${c.cyan}ALIO 데이터 다운로드${c.reset}`)
+  console.log(`  ${c.bold}${c.cyan}ALIO 데이터 다운로드 (강제 갱신)${c.reset}`)
   console.log(`  ${c.dim}대상: ${destDir}${c.reset}`)
   if (override?.trim()) {
     console.log(`  ${c.dim}(ALIO_DATA_DIR 환경변수 존중)${c.reset}`)
   }
+  console.log(`  ${c.dim}기존 데이터가 있으면 다운로드 성공 후 자동 갱신 (다운로드 실패 시 기존 데이터 보존)${c.reset}`)
   console.log()
 
   try {
-    const result = await ensureAlioData(destDir)
-    if (result.skipped) {
-      console.log(`  ${c.green}✓${c.reset} 이미 존재 — 다운로드 스킵`)
-    } else {
-      console.log(
-        `  ${c.green}✓${c.reset} 준비 완료${result.sizeMb ? ` (~${result.sizeMb}MB 다운로드)` : ""}`
-      )
-    }
+    const result = await ensureAlioData(destDir, { force: true })
+    const action = result.refreshed ? "갱신" : "신규 받기"
+    console.log(
+      `  ${c.green}✓${c.reset} ${action} 완료${result.sizeMb ? ` (~${result.sizeMb}MB)` : ""}`
+    )
     console.log()
     console.log(`  ${c.dim}이제 ${c.bold}korean-law-alio "..."${c.reset}${c.dim} 같이 CLI 또는 MCP 도구로 ALIO 자료 호출 가능${c.reset}`)
     console.log()
