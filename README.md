@@ -151,7 +151,7 @@ npx --version
 > - `npx korean-law-alio-mcp fetch-data` — ALIO 데이터만 별도 갱신 (다운로드 성공 후 안전 교체, 실패 시 기존 보존)
 > - `npx korean-law-alio-mcp uninstall` — 클라이언트 설정 + ALIO 데이터 + npx 캐시 일괄 정리 (기본 No prompt)
 
-### 방법 2: https://claude.ai/ 웹에서 바로 사용 (간편함)
+### ⭐ 방법 2: https://claude.ai/ 웹에서 바로 사용 (간편함)
 
 https://claude.ai/ 에서 커스텀 커넥터 추가.
 
@@ -166,7 +166,7 @@ https://claude.ai/ 에서 커스텀 커넥터 추가.
 >    - **URL**: `https://korean-law-alio-mcp.fly.dev/mcp?oc=your-api-key-here`
 > 5. "추가" → 등록 완료
 
-![Claude 커스텀 커넥터 등록 화면](./claude-connector.png)
+<img src="./claude-connector.png" alt="Claude 커스텀 커넥터 등록 화면" width="400">
 
 **도구 활성화 (중요)**: 등록한 커넥터 "구성" 클릭 → 도구 목록에서 **모든 도구를 "항상 사용"** 으로 설정. 매번 승인 없이 AI가 바로 호출 가능.
 
