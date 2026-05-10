@@ -149,19 +149,22 @@ After saving, you must **fully quit and reopen** the client.
 > - `npx korean-law-alio-mcp fetch-data` — refresh ALIO data only (safe replace: wipes existing only after a successful download; preserves old data if download fails)
 > - `npx korean-law-alio-mcp uninstall` — clean up client configs + ALIO data + npx cache in one go (defaults to No prompt for safety)
 
-### Method 2: Use directly in Claude.ai web (simple)
+### Method 2: Use directly in Claude.ai web (simple, recommended)
 
 Add a custom connector at [claude.ai](https://claude.ai).
 
-**How to add the connector**:
+> [!IMPORTANT]
+> **How to add the connector**:
+>
+> 1. Log in to claude.ai
+> 2. Sidebar bottom (your name) → "Settings" → "Connectors"
+> 3. "Custom Connectors" → "Add custom connector"
+> 4. Enter (replace `your-api-key-here` with your actual key):
+>    - **Name**: `korean-law-alio` (free choice)
+>    - **URL**: `https://korean-law-alio-mcp.fly.dev/mcp?oc=your-api-key-here`
+> 5. Click "Add" → done
 
-1. Log in to claude.ai
-2. Sidebar bottom (your name) → "Settings" → "Connectors"
-3. "Custom Connectors" → "Add custom connector"
-4. Enter (replace `your-api-key-here` with your actual key):
-   - **Name**: `korean-law-alio` (free choice)
-   - **URL**: `https://korean-law-alio-mcp.fly.dev/mcp?oc=your-api-key-here`
-5. Click "Add" → done
+![Claude custom connector setup screen](./claude-connector.png)
 
 **Activate tools (important)**: open the connector's "Configure" → set **all tools to "Always allow"**. The AI can then call them without per-request approval.
 
