@@ -126,7 +126,9 @@ node --version    # should show v20.x.x or later
 npx --version
 ```
 
-### ⭐ Method 1: Claude Desktop / Cursor / Windsurf — `npx` auto-setup (most recommended)
+<a id="method-1"></a>
+
+### ⭐ Method 1: Claude Desktop / Cursor / Windsurf — `npx` auto-setup (stable, recommended)
 
 > [!IMPORTANT]
 > **One line gets you fully set up.**
@@ -149,14 +151,14 @@ After saving, you must **fully quit and reopen** the client.
 > - `npx korean-law-alio-mcp fetch-data` — refresh ALIO data only (safe replace: wipes existing only after a successful download; preserves old data if download fails)
 > - `npx korean-law-alio-mcp uninstall` — clean up client configs + ALIO data + npx cache in one go (defaults to No prompt for safety)
 
-### Method 2: Use directly in Claude.ai web (simple, recommended)
+### Method 2: Use directly at https://claude.ai/ (simple)
 
-Add a custom connector at [claude.ai](https://claude.ai).
+Add a custom connector at https://claude.ai/
 
 > [!IMPORTANT]
 > **How to add the connector**:
 >
-> 1. Log in to claude.ai
+> 1. Log in at https://claude.ai/
 > 2. Sidebar bottom (your name) → "Settings" → "Connectors"
 > 3. "Custom Connectors" → "Add custom connector"
 > 4. Enter (replace `your-api-key-here` with your actual key):
@@ -167,6 +169,8 @@ Add a custom connector at [claude.ai](https://claude.ai).
 ![Claude custom connector setup screen](./claude-connector.png)
 
 **Activate tools (important)**: open the connector's "Configure" → set **all tools to "Always allow"**. The AI can then call them without per-request approval.
+
+> ⚠️ **Caution**: Adding this as a custom connector in **Claude Desktop** causes runtime errors. For Claude Desktop, you must use [Method 1](#method-1) instead.
 
 ### Method 3: Claude Code Plugin — `/plugin install` one-liner
 

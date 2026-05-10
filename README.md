@@ -126,7 +126,9 @@ node --version    # v20.x.x 이상이 떠야 함
 npx --version
 ```
 
-### ⭐ 방법 1: Claude Desktop / Cursor / Windsurf — `npx` 자동 설정 (가장 권장)
+<a id="method-1"></a>
+
+### ⭐ 방법 1: Claude Desktop / Cursor / Windsurf — `npx` 자동 설정 (안정적, 권장)
 
 > [!IMPORTANT]
 > **설치는 이 한 줄로 끝.**
@@ -149,14 +151,14 @@ npx --version
 > - `npx korean-law-alio-mcp fetch-data` — ALIO 데이터만 별도 갱신 (다운로드 성공 후 안전 교체, 실패 시 기존 보존)
 > - `npx korean-law-alio-mcp uninstall` — 클라이언트 설정 + ALIO 데이터 + npx 캐시 일괄 정리 (기본 No prompt)
 
-### 방법 2: Claude.ai 웹에서 바로 사용 (간편함, 권장)
+### 방법 2: https://claude.ai/ 웹에서 바로 사용 (간편함)
 
-[claude.ai](https://claude.ai) 에서 커스텀 커넥터 추가.
+https://claude.ai/ 에서 커스텀 커넥터 추가.
 
 > [!IMPORTANT]
 > **커넥터 추가 방법**:
 >
-> 1. claude.ai 로그인
+> 1. https://claude.ai/ 로그인
 > 2. 사이드바 하단 본인 이름 → "설정" → "커넥터"
 > 3. "커스텀 커넥터" 영역 → "커스텀 커넥터 추가"
 > 4. 아래 입력 (`your-api-key-here` 는 본인 키로 교체):
@@ -167,6 +169,8 @@ npx --version
 ![Claude 커스텀 커넥터 등록 화면](./claude-connector.png)
 
 **도구 활성화 (중요)**: 등록한 커넥터 "구성" 클릭 → 도구 목록에서 **모든 도구를 "항상 사용"** 으로 설정. 매번 승인 없이 AI가 바로 호출 가능.
+
+> ⚠️ **주의사항**: Claude Desktop 에서는 커스텀 커넥터로 추가 시 동작 중 오류가 발생합니다. Claude Desktop 은 반드시 [방법 1](#method-1) 로 추가해야 합니다.
 
 ### 방법 3: Claude Code 플러그인 — `/plugin install` 한 줄
 
