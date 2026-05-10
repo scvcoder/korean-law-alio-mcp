@@ -2,6 +2,39 @@
 
 ---
 
+## [1.0.8] - 2026-05-10
+
+> **Setup wizard 메시지 정리 + 안전성 강화 + README 개선**: 미감지 클라이언트 자동 등록 방지, 모드별 trade-off 명시, 방법 2 안내 callout + 스크린샷.
+
+### Changed (Setup wizard)
+
+- **Step 3 (클라이언트 선택) — 감지된 항목만 선택 가능** ([src/scripts/setup.ts](./src/scripts/setup.ts)) — 이전엔 미감지 항목도 입력 가능 (config 파일 없는 클라이언트에 등록 시 무의미). 이제 검증 통과 못 함 + `감지됨: 1,3` 명시. 감지 0건이면 prompt 없이 자동으로 수동 안내로 전환.
+- **Banner subtitle 단순화**: `법제처 87 + ALIO 23 = 110개 도구 · 자연어 자동 라우팅 + cross-domain 브리지` → `법제처 법령과 ALIO 공공기관 내부규정의 데이터를 연계`.
+- **Step 1**: `IP/도메인 등록은 비워두는 것을 권장` 부가 안내 줄 제거 (불필요).
+- **Step 2 모드 설명에 trade-off 추가**:
+  - 로컬: `자기 PC 에서 실행 - 안정적, 빠름`
+  - 원격: `원격 서버에서 실행 - 약간 느림`
+- **printComplete 로컬 모드 단순화**: `ALIO 데이터 위치 / 갱신 안내` 2줄 → `v{VERSION} 으로 설치가 완료되었습니다.` 한 줄.
+
+### Changed (README)
+
+- **방법 1 헤더**: `(가장 권장)` → `(안정적, 권장)`. 안정성 강조로 표현 정렬.
+- **방법 2 헤더**: `⭐` 추가 + `(간편함, 권장)` → `(간편함)` + `Claude.ai 웹` → `https://claude.ai/ 웹` (풀 URL 표기). 권장 표시는 방법 1 만.
+- **방법 2 등록 절차** — 5단계 절차를 GitHub `[!IMPORTANT]` callout (보라색 좌측 테두리 + 종 아이콘) 으로 강조.
+- **방법 2 안내 스크린샷 첨부** ([claude-connector.png](./claude-connector.png)) — Claude.ai 의 "커스텀 커넥터 추가" 다이얼로그. HTML `<img width="400">` 로 표시 크기만 작게, 파일은 900px 유지 (선명함 보장).
+- **방법 2 ⚠️ 주의사항 추가** — Claude Desktop 에서는 커스텀 커넥터로 추가 시 동작 오류 발생, 반드시 [방법 1](#method-1) 로 추가 권장. (`<a id="method-1"></a>` HTML 앵커로 안전한 jump link)
+- **예시 섹션 헤더 명확화** — `두 영역을 잇는 자연어 질의` → `📜 법제처의 법률정보와 🏢 알리오의 공공기관 내부규정을 잇는 자연어 질의`. emoji 마커로 두 데이터 소스 시각 구분 (GitHub 가 임의 글자 색 변경 미지원).
+- 한국어 + 영문 README 동기화.
+
+### Internal
+
+- `detectInstallMethod()` 함수 삭제 — printComplete 단순화로 npx vs global 분기 불필요.
+- `printComplete(apiKey, mode, dataDir)` → `printComplete(apiKey, mode)` (인자 1개 제거).
+- `alioDataDestination` 변수 삭제.
+- `VERSION` import 추가 (printComplete 메시지의 버전 표시용).
+
+---
+
 ## [1.0.7] - 2026-05-09
 
 > **Setup wizard 입력 검증 강화** — 범위 밖 값을 조용히 무시/fallback 하던 동작을 명시적 재요청으로.
