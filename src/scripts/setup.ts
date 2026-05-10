@@ -29,6 +29,7 @@ import { spawn } from "node:child_process"
 import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
 import { userAlioDataDir } from "../lib/alio/paths.js"
+import { VERSION } from "../version.js"
 
 const REMOTE_URL = "https://korean-law-alio-mcp.fly.dev/mcp"
 const SERVER_NAME = "korean-law-alio"
@@ -148,7 +149,7 @@ const c = {
 function printBanner(): void {
   console.log()
   console.log(`  ${c.bold}${c.cyan}Korean Law + ALIO MCP — Setup Wizard${c.reset}`)
-  console.log(`  ${c.dim}법제처 87 + ALIO 23 = 110개 도구 · 자연어 자동 라우팅 + cross-domain 브리지${c.reset}`)
+  console.log(`  ${c.dim}법제처 법령과 ALIO 공공기관 내부규정의 데이터를 연계${c.reset}`)
   console.log()
   console.log(`  ${c.dim}${"━".repeat(64)}${c.reset}`)
   console.log()
@@ -172,21 +173,6 @@ function detectLocalBuild(): string | null {
   const here = fileURLToPath(import.meta.url)
   const indexPath = resolve(dirname(here), "..", "index.js")
   return existsSync(indexPath) ? indexPath : null
-}
-
-/**
- * 현재 실행 위치로부터 설치 방식 추측.
- * - npx: ~/.npm/_npx/<hash>/node_modules/... → 'npx'
- * - npm install -g: /usr/local/lib/node_modules/... 또는 ~/.nvm/.../lib/node_modules/... → 'global'
- * - dev clone: 위 둘 다 아님 → 'dev'
- *
- * printComplete 메시지에 적합한 명령 형태(npx prefix 여부)를 결정하기 위함.
- */
-function detectInstallMethod(): "npx" | "global" | "dev" {
-  const here = fileURLToPath(import.meta.url)
-  if (here.includes("/.npm/_npx/")) return "npx"
-  if (here.includes("/lib/node_modules/")) return "global"
-  return "dev"
 }
 
 /** buildPath(`<root>/build/index.js`) 로부터 패키지 루트 추출 */
@@ -345,7 +331,6 @@ export async function runSetup(): Promise<void> {
     // ── Step 1: API 키 (필수) ──
     stepHeader(1, 4, "법제처 API 키 (필수)")
     console.log(`  ${c.dim}발급(무료, 1분): https://open.law.go.kr/LSO/openApi/guideResult.do${c.reset}`)
-    console.log(`  ${c.dim}IP/도메인 등록은 비워두는 것을 권장 — 어디서든 호출 가능${c.reset}`)
     console.log()
     let apiKey = ""
     while (!apiKey) {
@@ -362,12 +347,12 @@ export async function runSetup(): Promise<void> {
     const localBuild = detectLocalBuild()
     if (localBuild) {
       console.log(`  ${c.cyan}1${c.reset}) ${c.white}로컬 모드${c.reset}  ${c.dim}— stdio + ${localBuild}${c.reset}`)
-      console.log(`     ${c.dim}자기 PC 에서 실행${c.reset}`)
+      console.log(`     ${c.dim}자기 PC 에서 실행 - 안정적, 빠름${c.reset}`)
     } else {
       console.log(`  ${c.dim}1) 로컬 모드 — 빌드 미감지 (npm run build 후 다시 실행)${c.reset}`)
     }
     console.log(`  ${c.cyan}2${c.reset}) ${c.white}원격 모드${c.reset}    ${c.dim}— 운영자 fly 서버 사용 (${REMOTE_URL})${c.reset}`)
-    console.log(`     ${c.dim}즉시 110개 도구 + ALIO 데이터 mirror 사용 (best-effort 갱신)${c.reset}`)
+    console.log(`     ${c.dim}원격 서버에서 실행 - 약간 느림${c.reset}`)
     console.log()
     let modeInput = ""
     while (true) {
@@ -402,19 +387,30 @@ export async function runSetup(): Promise<void> {
     console.log(`  ${c.dim} 0) 자동 등록 안 함 — 수동 설정 안내만 출력${c.reset}`)
     console.log()
 
-    // 디폴트: 감지된 클라이언트 모두 (예: "1,3"). 감지 0건이면 디폴트 없음.
-    const detectedDefault = clients
-      .map((_, i) => (detectedFlags[i] ? String(i + 1) : null))
-      .filter((s): s is string => s !== null)
-      .join(",")
-    const promptText = detectedDefault
-      ? `  ${c.cyan}>${c.reset} 번호 (예: 1,3) [기본=감지된 ${detectedDefault}]: `
-      : `  ${c.cyan}>${c.reset} 번호 (예: 1,3): `
+    // 감지된 인덱스만 선택 가능 (감지 안 된 클라이언트는 설정 파일이 없어 wizard 가
+    // 자동 등록할 의미가 없음 — 사용자가 그 클라이언트를 직접 한 번 실행해
+    // config 가 생성된 뒤 다시 setup 권장).
+    const detectedIndices = clients
+      .map((_, i) => (detectedFlags[i] ? i : -1))
+      .filter((i) => i >= 0)
+    const detectedNumberList = detectedIndices.map((i) => i + 1).join(",")
+
+    // 감지 0건: 자동 등록 불가 — 바로 수동 안내로
+    if (detectedIndices.length === 0) {
+      console.log(
+        `  ${c.yellow}!${c.reset} 감지된 클라이언트가 없습니다. 수동 설정 안내로 전환합니다.`
+      )
+      console.log()
+      printManualConfig(apiKey, mode)
+      return
+    }
+
+    const promptText = `  ${c.cyan}>${c.reset} 번호 (감지된 ${detectedNumberList} 중에서 선택, 다중은 쉼표) [기본=${detectedNumberList}]: `
 
     let clientInput = ""
     let indices: number[] = []
     while (true) {
-      clientInput = (await ask(rl, promptText)) || detectedDefault
+      clientInput = (await ask(rl, promptText)) || detectedNumberList
       if (!clientInput) {
         console.log(`  ${c.red}!${c.reset} 1개 이상 선택하거나 0 (수동 안내) 을 입력하세요.`)
         continue
@@ -424,15 +420,15 @@ export async function runSetup(): Promise<void> {
         printManualConfig(apiKey, mode)
         return
       }
-      // 모든 토큰 검증 — 하나라도 잘못된 번호면 재요청
+      // 모든 토큰 검증 — 감지된 항목만 허용
       const tokens = clientInput.split(",").map((s) => s.trim()).filter(Boolean)
       const parsed = tokens.map((t) => ({ token: t, idx: parseInt(t, 10) - 1 }))
       const invalid = parsed.filter(
-        (p) => !/^\d+$/.test(p.token) || p.idx < 0 || p.idx >= clients.length
+        (p) => !/^\d+$/.test(p.token) || !detectedIndices.includes(p.idx)
       )
       if (invalid.length > 0) {
         console.log(
-          `  ${c.red}!${c.reset} 유효하지 않은 번호: ${invalid.map((p) => p.token).join(", ")}. 1~${clients.length} 범위로 다시 입력하세요.`
+          `  ${c.red}!${c.reset} 감지된 항목만 선택 가능합니다. 잘못된 번호: ${invalid.map((p) => p.token).join(", ")} (감지됨: ${detectedNumberList})`
         )
         continue
       }
@@ -470,7 +466,6 @@ export async function runSetup(): Promise<void> {
     //      → runtime alioDataDir() 도 user home 폴백 인식하므로 별도 환경변수 설정 불필요.
     //
     // 기존 데이터 존재 시: prompt — 갱신할지 사용자에게 물음 (기본 갱신).
-    let alioDataDestination: string | undefined
     if (mode.type === "local") {
       console.log()
       console.log(`  ${c.cyan}${c.bold}[추가]${c.reset} ${c.white}${c.bold}ALIO 데이터${c.reset}`)
@@ -480,7 +475,6 @@ export async function runSetup(): Promise<void> {
       const dataDir = existsSync(join(pkgLocalData, "institutions.json"))
         ? pkgLocalData
         : userAlioDataDir()
-      alioDataDestination = dataDir
 
       const hadExisting = existsSync(join(dataDir, "institutions.json"))
       let proceed = true
@@ -514,13 +508,13 @@ export async function runSetup(): Promise<void> {
       }
     }
 
-    printComplete(apiKey, mode, alioDataDestination)
+    printComplete(apiKey, mode)
   } finally {
     rl.close()
   }
 }
 
-function printComplete(apiKey: string, mode: InstallMode, dataDir?: string): void {
+function printComplete(apiKey: string, mode: InstallMode): void {
   console.log()
   console.log(`  ${c.green}${c.bold}╔${"═".repeat(58)}╗${c.reset}`)
   console.log(
@@ -537,16 +531,7 @@ function printComplete(apiKey: string, mode: InstallMode, dataDir?: string): voi
   }
 
   if (mode.type === "local") {
-    const dest = dataDir ?? userAlioDataDir()
-    const method = detectInstallMethod()
-    const refreshCmd =
-      method === "npx"
-        ? "npx korean-law-alio-mcp@latest fetch-data"
-        : "korean-law-alio-mcp fetch-data"
-    console.log(`  ${c.dim}로컬 모드 — ALIO 데이터 위치: ${c.bold}${dest}${c.reset}`)
-    console.log(
-      `  ${c.dim}최신 데이터로 갱신: ${c.bold}${refreshCmd}${c.reset}${c.dim} (한 줄로 자동 갱신)${c.reset}`
-    )
+    console.log(`  ${c.dim}${c.bold}v${VERSION}${c.reset}${c.dim} 으로 설치가 완료되었습니다.${c.reset}`)
     console.log()
   } else {
     console.log(`  ${c.dim}원격 모드 — 운영자가 갱신하는 ALIO 데이터를 주기적으로 갱신하고 mcp 서버를 운영${c.reset}`)
