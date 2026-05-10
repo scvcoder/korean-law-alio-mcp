@@ -128,7 +128,7 @@ npx --version
 
 <a id="method-1"></a>
 
-### ⭐ Method 1: Claude Desktop / Cursor / Windsurf — `npx` auto-setup (stable, recommended)
+### ⭐ Method 1: Claude Desktop / Cursor / Windsurf — `npx` auto-install (stable, recommended)
 
 > [!IMPORTANT]
 > **One line gets you fully set up.**

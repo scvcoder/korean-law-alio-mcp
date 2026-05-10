@@ -128,7 +128,7 @@ npx --version
 
 <a id="method-1"></a>
 
-### ⭐ 방법 1: Claude Desktop / Cursor / Windsurf — `npx` 자동 설정 (안정적, 권장)
+### ⭐ 방법 1: Claude Desktop / Cursor / Windsurf — `npx` 자동 설치 (안정적, 권장)
 
 > [!IMPORTANT]
 > **설치는 이 한 줄로 끝.**
