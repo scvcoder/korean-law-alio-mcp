@@ -46,7 +46,7 @@ On top of the upstream's 87 Korean-Law tools, this fork adds **23 ALIO public-in
 - **Setup wizard** — `npx korean-law-alio-mcp setup` (API key → operating mode → multi-client selection → config auto-registration)
 - **fly.io remote MCP** — `https://korean-law-alio-mcp.fly.dev` (110 tools + ALIO data; best-effort to keep it running)
 
-### Example — natural-language queries that span both areas
+### Example — natural-language queries linking the Korean Law portal and ALIO public-institution internal regulations
 
 ```
 "Show me the upper laws related to ○○ Agency's HR regulations"
