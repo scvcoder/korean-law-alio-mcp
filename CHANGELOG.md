@@ -2,6 +2,90 @@
 
 ---
 
+## [1.3.0] - 2026-06-06
+
+> **노사협의회 의결사항 카테고리 추가 + 보고서형 PoC 완료**: 단체협약·임금협약에 이어 세 번째 보고서형 카테고리 "노사협의회 의결사항" (reportFormRootNo=21028) 도입. 이로써 보고서형 3종 = 15개 도구 완비.
+
+### Added
+
+- **노사협의회 의결사항 5개 도구** (`reportFormRootNo=21028`, 보고서형) — `search_institution_labor_council` / `list_alio_labor_council` / `get_alio_labor_council` / `search_alio_labor_council_text` / `compare_alio_labor_council`. [descriptors.ts](./src/tools/alio-report/descriptors.ts) 에 descriptor 추가만으로 생성 (팩토리 재사용).
+- **자연어 라우팅** — `"노사협의회 복리후생 검색"`, `"노사협의회 의결사항 비교"` 등 5패턴 (`reportCategoryRoutes` 로 생성).
+
+### 전체 sync 검증 (docling OCR + ZIP unwrap)
+
+- 355/355 기관, disclosure **6,975건** (보고서형 중 최대 규모). 첨부파일 단위 **9,080/9,156 성공 (99.2%)**, docling fallback 4,558건. 잔존 실패 76건 (대부분 docling 도 못 읽는 스캔 이미지 PDF).
+- 런타임 로드: 343개 기관 / 6,975 entries.
+
+### Changed
+
+- **도구 수**: 120 → **125** (87 + 23 + 보고서형 15).
+
+---
+
+## [1.2.0] - 2026-06-06
+
+> **임금협약 카테고리 추가 + 보고서형 도구 팩토리 통합**: 두 번째 보고서형 카테고리 "임금협약" (reportFormRootNo=21027) 도입. 동시에 단체협약/임금협약/노사협의회가 구조적으로 동일함을 활용해 5개 도구 로직을 단일 팩토리로 통합 — 카테고리당 코드 복제 제거.
+
+### Added
+
+- **임금협약 5개 도구** (`reportFormRootNo=21027`, 보고서형) — `search_institution_wage_agreements` / `list_alio_wage_agreements` / `get_alio_wage_agreement` / `search_alio_wage_agreement_text` / `compare_alio_wage_agreements`.
+- **자연어 라우팅** — `"공공기관 임금협약 성과급 비교"`, `"임금협약 있는 공공기관"` 등 5패턴.
+
+### Changed
+
+- **보고서형 도구 팩토리화** ([src/tools/alio-report/](./src/tools/alio-report/)) — `category-tools.ts` 의 `buildReportCategoryTools(descriptor)` 가 카테고리 descriptor 를 받아 5개 도구(schema+handler) 생성. v1.1.0 의 `src/tools/alio-labor/` 개별 5파일(~600줄)을 팩토리로 통합, 단체협약도 동일 코드경로 사용.
+- **라우팅 팩토리화** — `query-router.ts` 의 `reportCategoryRoutes()` 가 카테고리별 5개 라우팅 패턴 생성. 3개 카테고리 모두 동일 헬퍼로 생성.
+- **도구 수**: 115 → **120** (임금협약 5개 추가).
+
+### 전체 sync 검증 (docling OCR + ZIP unwrap)
+
+- 355/355 기관, disclosure 1,592건. 첨부파일 단위 **2,503/2,533 성공 (98.8%)**, docling fallback 1,506건. 잔존 실패 30건. 런타임 로드: 278개 기관 / 1,573 entries.
+
+---
+
+## [1.1.0] - 2026-06-05
+
+> **ALIO 공시 카테고리 확장 시작 — 단체협약 PoC**: 기존 "정관 및 내부규정" (reportFormRootNo=21110) 1개 카테고리만 지원하던 sync/도구 파이프라인을 일반화. 첫 신규 카테고리로 "단체협약" (21026) 도입. v1.2.0 임금협약, v1.3.0 노사협의회 의결사항 순차 확장 예정.
+
+### Added
+
+- **단체협약 (Collective Bargaining Agreements) 5개 도구** (v1.2.0 에서 [src/tools/alio-report/](./src/tools/alio-report/) 팩토리로 통합) — `reportFormRootNo=21026`, 보고서형 (`reportGbn=Y`, 연도별 보고서 + N개 첨부파일):
+  - `search_institution_labor_agreements` — 단체협약 보유 기관 검색
+  - `list_alio_labor_agreements` — 기관의 단체협약 목록
+  - `get_alio_labor_agreement` — 단체협약 본문 (한 disclosure = 협약서 PDF + 주요내용 HWP + 신구대비표 등 모든 첨부 1개 MD 로 concat). `attachment` 인자로 특정 첨부 섹션만 추출 가능
+  - `search_alio_labor_agreement_text` — 단체협약 본문 전문 검색
+  - `compare_alio_labor_agreements` — 기관간 단체협약 토픽 비교 (휴가/수당/교섭 등)
+- **`--category` CLI 옵션** ([src/scripts/alio-sync.ts](./src/scripts/alio-sync.ts)) — `npm run alio:sync -- --category labor-agreements` 로 단체협약 sync. default `regulations` (기존 동작 그대로).
+- **자연어 라우팅 패턴 5개** ([src/lib/query-router.ts](./src/lib/query-router.ts)):
+  - `"한국방송통신전파진흥원 단체협약"` → `list_alio_labor_agreements`
+  - `"공공기관 단체협약 비교"` → `compare_alio_labor_agreements`
+  - `"단체협약 시간외근로 검색"` → `search_alio_labor_agreement_text`
+  - `"단체협약 있는 공공기관"` → `search_institution_labor_agreements`
+  - 기관 식별자 (alias / apbaId) + 단체협약 조합도 동일 분기
+
+### Changed
+
+- **데이터 저장 구조 — 카테고리별 디렉터리 분리**:
+  - 내부규정 (기존): `{apbaId}/manifest.json` + `{apbaId}/regulations/{regId}.md` (변경 없음 — backward compat)
+  - 단체협약 (신규): `{apbaId}/labor-agreements/manifest.json` + `{apbaId}/labor-agreements/{disclosureNo}.md`
+- **`ensureAlioData` / runtime 경로 해석**: regulations 디폴트로 위임해서 기존 23개 도구는 코드 변경 없이 동작. 신규 5개 도구는 `loadIndex("labor-agreements")` 명시.
+- **README/CLAUDE.md 도구 수 갱신**: 110 → 115 (87 + 23 + 5).
+
+### Internal
+
+- `client.ts`: `listRegulations(apbaId, pageNo, apbaType, reportFormRootNo=21110)` — 마지막 인자 추가. 보고서형 전용 함수 신설 `getReportDisclosureFiles(disclosureNo)` + `downloadReportFile(fileNo, disclosureNo, submissionNo)`. URL 패턴: detail = `/item/itemReport.do?seq=...`, download = `/download/file.json?f=&d=&s=`.
+- `paths.ts`: `AlioCategory` type + `categoryManifestPath(apbaId, category)` + `categoryDocMdPath(apbaId, docId, category)` helper. 기존 `manifestPath` / `regulationMdPath` 는 `regulations` default 로 위임.
+- `types.ts`: `Manifest.category?: AlioCategory` 추가. `RegulationListItem` 에 `disclosureNo`/`submissionNo` 옵션 필드 추가 (보고서형용).
+- `manifest.ts`: `readCategoryManifest` / `writeCategoryManifest` 추가.
+- `index-loader.ts`: `loadIndex(category="regulations")` 로 카테고리별 인메모리 캐시 분리. `readCategoryDocMd` 추가.
+- 테스트 기대값 갱신 (110 → 115, ALIO 23 → 28).
+
+### 데이터 사이즈 — PoC 결과
+
+KCA (C0187) 단일 기관 단체협약 1건 측정: 3개 첨부 (PDF 1.6MB + HWP 2개) → 1.8MB / 1 MD. 내부규정 대비 훨씬 작음 (기관당 ~1-3건). 전체 ~344개 기관 sync 시 예상 ~수십-수백 MB (내부규정 1.3GB 대비 매우 가벼움).
+
+---
+
 ## [1.0.8] - 2026-05-10
 
 > **Setup wizard 메시지 정리 + 안전성 강화 + README 개선**: 미감지 클라이언트 자동 등록 방지, 모드별 trade-off 명시, 방법 2 안내 callout + 스크린샷.

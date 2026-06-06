@@ -20,18 +20,28 @@ import {
   listAllRegulations,
   getRegulationDetail,
   downloadRegulationFile,
+  getReportDisclosureFiles,
+  downloadReportFile,
   RULE_REPORT_FORM_ROOT,
+  REPORT_FORM_ROOT_BY_CATEGORY,
 } from "../lib/alio/client.js"
 import {
   readManifest,
   writeManifest,
+  readCategoryManifest,
+  writeCategoryManifest,
   readInstitutionsIndex,
   writeInstitutionsIndex,
   readSyncState,
   writeSyncState,
   hashBuffer,
 } from "../lib/alio/manifest.js"
-import { institutionDir, regulationMdPath } from "../lib/alio/paths.js"
+import {
+  institutionDir,
+  regulationMdPath,
+  categoryDocMdPath,
+  type AlioCategory,
+} from "../lib/alio/paths.js"
 import type {
   Institution,
   Manifest,
@@ -42,6 +52,12 @@ import type {
 import { parseAnnexFile } from "../lib/annex-file-parser.js"
 import { looksLikeWrapperZip, unwrapZip, unwrapZipBundle } from "../lib/alio/unzip.js"
 import { isDoclingAvailable, parsePdfWithDocling } from "../lib/alio/docling-fallback.js"
+import {
+  isOcrmacAvailable,
+  parsePdfWithOcrmac,
+  parseImageWithOcrmac,
+  isOcrmacImage,
+} from "../lib/alio/ocrmac-fallback.js"
 import { isXlsLike, parseXlsFile } from "../lib/alio/xls-fallback.js"
 import { isHwp3, parseHwp3 } from "../lib/alio/hwp3-fallback.js"
 
@@ -51,10 +67,14 @@ interface Args {
   retryFailed: boolean
   retryFallback: boolean
   doclingFallback: boolean
+  /** Apple Vision(ocrmac) 2차 OCR fallback — docling/tesseract 실패 스캔 PDF 복구. macOS 전용, 가용성 자동 감지. */
+  ocrmacFallback: boolean
   concurrency: number
   limit?: number
   dryRun: boolean
   keepRaw: boolean
+  /** 공시 카테고리 (v1.1.0+). default = 'regulations' (내부규정, 기존 동작). */
+  category: AlioCategory
 }
 
 function parseArgs(argv: string[]): Args {
@@ -65,9 +85,11 @@ function parseArgs(argv: string[]): Args {
     // 기본값 ON: 스캔 PDF/엑셀/HWP3 같은 특수 케이스를 docling+tesseract 로 자동 fallback.
     // 외부 도구(docling) 가용성은 syncInstitutions() 시작 시 자동 감지해 미설치면 자동 비활성.
     doclingFallback: true,
+    ocrmacFallback: true,
     concurrency: 3,
     dryRun: false,
     keepRaw: false,
+    category: "regulations",
   }
   for (let i = 2; i < argv.length; i++) {
     const v = argv[i]
@@ -87,6 +109,9 @@ function parseArgs(argv: string[]): Args {
     } else if (v === "--no-docling-fallback") {
       // 외부 도구(docling) 사용 회피하고 kordoc 만 시도 (시간 빠르게, 특수 케이스는 parseError 로 기록)
       a.doclingFallback = false
+    } else if (v === "--no-ocrmac-fallback") {
+      // Apple Vision 2차 OCR 비활성 (docling/tesseract 만 사용)
+      a.ocrmacFallback = false
     } else if (v === "--concurrency") {
       a.concurrency = Math.max(1, Math.min(8, Number(next) || 3))
       i++
@@ -97,9 +122,20 @@ function parseArgs(argv: string[]): Args {
       a.dryRun = true
     } else if (v === "--keep-raw") {
       a.keepRaw = true
+    } else if (v === "--category") {
+      const c = (next || "").trim() as AlioCategory
+      if (!(c in REPORT_FORM_ROOT_BY_CATEGORY)) {
+        process.stderr.write(
+          `✗ 알 수 없는 --category: '${c}'. 지원: ${Object.keys(REPORT_FORM_ROOT_BY_CATEGORY).join(", ")}\n`
+        )
+        process.exit(1)
+      }
+      a.category = c
+      i++
     } else if (v === "--help" || v === "-h") {
       process.stderr.write(
-        "Usage: npm run alio:sync -- [--only C0xxx] [--resume] [--retry-failed] [--retry-fallback] [--no-docling-fallback] [--concurrency 3] [--limit 10] [--dry-run] [--keep-raw]\n" +
+        "Usage: npm run alio:sync -- [--category regulations|labor-agreements] [--only C0xxx] [--resume] [--retry-failed] [--retry-fallback] [--no-docling-fallback] [--concurrency 3] [--limit 10] [--dry-run] [--keep-raw]\n" +
+        "       (--category 기본: regulations(내부규정). labor-agreements(단체협약) 도 v1.1.0+ 지원)\n" +
         "       (docling fallback 은 기본 ON. docling 미설치 시 자동 비활성 + 안내. --no-docling-fallback 으로 명시 비활성 가능.)\n"
       )
       process.exit(0)
@@ -160,6 +196,43 @@ async function withTimeoutAndRetry<T>(
   )
 }
 
+// ────────────────────────────────────────
+// OCR 복구 — 실패한 PDF / 원시 이미지 첨부를 텍스트로
+// ────────────────────────────────────────
+// kordoc 이 실패한 PDF(이미지 기반/미인식 무관) 와 원시 이미지(jpg/png/gif 등) 를 OCR 한다.
+// macOS 에서는 ocrmac(Apple Vision) 우선 — tesseract(docling) 보다 빠르고(~5초) 한국어 스캔 정확도가 높다.
+// ocrmac 미가용(비-macOS)이면 docling(tesseract) 만 사용. PDF 만 docling 으로 처리 가능.
+async function ocrRecover(
+  bytes: Buffer,
+  displayName: string,
+  fileType: string | undefined,
+  args: Args
+): Promise<{ md?: string; parser?: "docling" | "ocrmac"; err?: string }> {
+  const isPdf = fileType === "pdf" || /\.pdf$/i.test(displayName)
+  // 1) PDF → ocrmac 우선, docling 보조
+  if (isPdf) {
+    let ocrErr: string | undefined
+    if (args.ocrmacFallback) {
+      const o = await parsePdfWithOcrmac(bytes, displayName)
+      if (o.success && o.markdown) return { md: o.markdown, parser: "ocrmac" }
+      ocrErr = `ocrmac: ${o.error || "unknown"}`
+    }
+    if (args.doclingFallback) {
+      const d = await parsePdfWithDocling(bytes, displayName)
+      if (d.success && d.markdown) return { md: d.markdown, parser: "docling" }
+      return { err: [ocrErr, `docling: ${d.error || "unknown"}`].filter(Boolean).join("; ") }
+    }
+    return { err: ocrErr || "OCR fallback 비활성" }
+  }
+  // 2) 원시 이미지 파일 → ocrmac 직접 (docling 은 이미지 단독 파일 미지원)
+  if (isOcrmacImage(displayName) && args.ocrmacFallback) {
+    const o = await parseImageWithOcrmac(bytes, displayName)
+    if (o.success && o.markdown) return { md: o.markdown, parser: "ocrmac" }
+    return { err: `ocrmac(image): ${o.error || "unknown"}` }
+  }
+  return {}
+}
+
 async function syncInstitutions(args: Args): Promise<Institution[]> {
   // docling 가용성 자동 감지 — 미설치 시 fallback 자동 비활성 + 안내 (스캔 PDF/엑셀/HWP3 등 특수 케이스 영향)
   if (args.doclingFallback) {
@@ -171,6 +244,16 @@ async function syncInstitutions(args: Args): Promise<Institution[]> {
       args.doclingFallback = false
     } else {
       log("  ✓ docling 사용 가능 — 스캔 PDF/엑셀/HWP3 자동 fallback 활성")
+    }
+  }
+  // Apple Vision(ocrmac) 2차 OCR — docling/tesseract 가 실패한 불량 스캔 PDF 복구 (macOS 전용)
+  if (args.ocrmacFallback) {
+    const ocrmacOk = await isOcrmacAvailable()
+    if (!ocrmacOk) {
+      log("  ! ocrmac(Apple Vision) 미가용 — docling/tesseract 만 사용. (macOS + pdftoppm + 'pip3 install ocrmac' 시 자동 활성)")
+      args.ocrmacFallback = false
+    } else {
+      log("  ✓ ocrmac(Apple Vision) 사용 가능 — docling 실패 스캔 PDF 를 2차 OCR 로 복구")
     }
   }
   log("▶ ALIO 기관 목록 조회 중...")
@@ -396,25 +479,20 @@ async function processRegulation(
   const parsed = await parseAnnexFile(arrayBufferCopy)
 
   // fallback: kordoc 실패 시 유형별로 시도
-  let fallbackParser: "docling" | undefined
+  let fallbackParser: "docling" | "ocrmac" | undefined
   let finalMarkdown: string | undefined = parsed.success ? parsed.markdown : undefined
   let finalError: string | undefined = parsed.success ? undefined : parsed.error || "unknown"
   const fileType = parsed.fileType
 
-  // 1) 이미지 기반 PDF → docling + OCR
-  if (
-    args.doclingFallback &&
-    !parsed.success &&
-    parsed.fileType === "pdf" &&
-    /이미지\s*기반/.test(parsed.error || "")
-  ) {
-    const dl = await parsePdfWithDocling(parseBytes, parseFilename)
-    if (dl.success && dl.markdown) {
-      finalMarkdown = dl.markdown
+  // 1) 실패한 PDF(이미지 기반/미인식 무관) + 원시 이미지 → OCR (ocrmac 우선, docling 보조)
+  if (!parsed.success && !finalMarkdown) {
+    const r = await ocrRecover(parseBytes, parseFilename, parsed.fileType, args)
+    if (r.md) {
+      finalMarkdown = r.md
       finalError = undefined
-      fallbackParser = "docling"
-    } else {
-      finalError = `kordoc: ${parsed.error}; docling: ${dl.error || "unknown"}`
+      fallbackParser = r.parser
+    } else if (r.err) {
+      finalError = `kordoc: ${parsed.error}; ${r.err}`
     }
   }
 
@@ -514,17 +592,35 @@ async function processBundle(
         subMd = p.markdown
         okCount++
       } else if (
-        args.doclingFallback &&
         !p.success &&
         p.fileType === "pdf" &&
         /이미지\s*기반/.test(p.error || "")
       ) {
-        const dl = await parsePdfWithDocling(sub.bytes, sub.filename)
-        if (dl.success && dl.markdown) {
-          subMd = dl.markdown
-          okCount++
-        } else {
-          subMd = `⚠️ 파싱 실패 (kordoc: ${p.error}; docling: ${dl.error})`
+        // 이미지 PDF → docling(tesseract) 1차, 실패 시 ocrmac(Apple Vision) 2차
+        let done = false
+        let dlErr: string | undefined
+        if (args.doclingFallback) {
+          const dl = await parsePdfWithDocling(sub.bytes, sub.filename)
+          if (dl.success && dl.markdown) {
+            subMd = dl.markdown
+            okCount++
+            done = true
+          } else {
+            dlErr = dl.error || "unknown"
+          }
+        }
+        if (!done && args.ocrmacFallback) {
+          const ocr = await parsePdfWithOcrmac(sub.bytes, sub.filename)
+          if (ocr.success && ocr.markdown) {
+            subMd = ocr.markdown
+            okCount++
+            done = true
+          } else {
+            subMd = `⚠️ 파싱 실패 (kordoc: ${p.error}; docling: ${dlErr || "skip"}; ocrmac: ${ocr.error})`
+            failCount++
+          }
+        } else if (!done) {
+          subMd = `⚠️ 파싱 실패 (kordoc: ${p.error}; docling: ${dlErr || "unknown"})`
           failCount++
         }
       } else {
@@ -670,13 +766,348 @@ function buildDetailUrl(item: RegulationListItem): string {
     apbaId: item.apbaId,
     nowcode: item.reportFormNo,
     reportFormNo: item.reportFormNo,
-    table_name: item.tableName,
-    idx_name: item.idxName,
+    table_name: item.tableName ?? "",
+    idx_name: item.idxName ?? "",
     idx: item.idx,
     reportGbn: item.reportGbn,
-    bid_type: item.bidType,
+    bid_type: item.bidType ?? "",
   })
   return `https://www.alio.go.kr/item/itemBoard21110.do?${q.toString()}`
+}
+
+// ─────────────────────────────────────────
+// 보고서형 (단체협약/임금협약/노사협의회) sync
+// ─────────────────────────────────────────
+
+/**
+ * 한 기관의 보고서형 공시 (현재 단체협약 21026, 향후 21027/21028) 를 sync.
+ *
+ * 내부규정 (게시판형) 과의 차이:
+ *   - regId = disclosureNo (연도별 보고서)
+ *   - 한 entry 에 첨부파일 여러 개 → 모두 파싱해 하나의 MD 로 concat
+ *   - 저장 경로: {apbaId}/{category}/manifest.json + {apbaId}/{category}/{disclosureNo}.md
+ */
+async function syncReportCategoryInstitution(
+  inst: Institution,
+  args: Args,
+  category: AlioCategory,
+  reportFormRootNo: number
+): Promise<InstitutionStats> {
+  const log2 = (m: string) => log(`  [${inst.apbaId} ${inst.apbaNa}] ${m}`)
+  log2(`${category} 목록 조회 (reportFormRootNo=${reportFormRootNo})...`)
+  const allItems = await listAllRegulations(inst.apbaId, inst.apbaType || "A2005", reportFormRootNo)
+  log2(`총 ${allItems.length}건 중 처리 대상 ${args.limit ? Math.min(args.limit, allItems.length) : allItems.length}건`)
+
+  const targets = args.limit ? allItems.slice(0, args.limit) : allItems
+
+  const existing = await readCategoryManifest(inst.apbaId, category)
+  const existingById = new Map<string, ManifestEntry>()
+  if (existing) for (const r of existing.regulations) existingById.set(r.regId, r)
+
+  const stats: InstitutionStats = {
+    apbaId: inst.apbaId,
+    totalRegulations: allItems.length,
+    fetched: 0,
+    parseOk: 0,
+    parseFail: 0,
+    fetchErrors: 0,
+    errorCategories: {},
+  }
+  const bumpCat = (key: string) => {
+    const k = key.slice(0, 60)
+    stats.errorCategories[k] = (stats.errorCategories[k] || 0) + 1
+  }
+
+  const nextEntries: ManifestEntry[] = []
+  let processed = 0
+
+  for (const item of targets) {
+    processed++
+    if (processed % 5 === 0 || processed === targets.length) {
+      log2(`진행 ${processed}/${targets.length}`)
+    }
+    const docId = item.disclosureNo || item.idx
+    try {
+      const entry = await withTimeoutAndRetry(
+        () => processReportDisclosure(inst, item, existingById.get(docId), args, category, reportFormRootNo),
+        `${docId} "${item.title}"`
+      )
+      if (entry) {
+        nextEntries.push(entry)
+        stats.fetched++
+        if (!entry.mdPath || entry.fileType === "unknown") {
+          // 첨부 없음 — 집계 대상 아님
+        } else if (entry.parseError) {
+          stats.parseFail++
+          bumpCat(entry.parseError)
+        } else {
+          stats.parseOk++
+        }
+      }
+    } catch (err) {
+      const msg = (err as Error).message
+      log2(`! ${docId} "${item.title}" 실패: ${msg}`)
+      stats.fetchErrors++
+      bumpCat(msg)
+      const prev = existingById.get(docId)
+      if (prev) nextEntries.push(prev)
+    }
+  }
+
+  const manifest: Manifest = {
+    apbaId: inst.apbaId,
+    institutionName: inst.apbaNa,
+    typeNa: inst.typeNa,
+    jidtNa: inst.jidtNa,
+    reportFormRootNo,
+    category,
+    fetchedAt: new Date().toISOString(),
+    regulations: nextEntries,
+  }
+  if (!args.dryRun) await writeCategoryManifest(manifest, category)
+  log2(
+    `✓ 완료 — manifest ${nextEntries.length}건 (파싱 성공 ${stats.parseOk}, 실패 ${stats.parseFail}, 수집오류 ${stats.fetchErrors})`
+  )
+  return stats
+}
+
+/**
+ * 보고서형 disclosure 1건 처리: 첨부파일 N개 → 다운로드 → 각각 파싱 → 하나의 MD 로 concat.
+ *
+ * MD 구조:
+ *   # {title}
+ *   - 메타...
+ *   ## 📑 첨부파일 목록 (N건)
+ *   1. 파일명1.pdf
+ *   2. 파일명2.hwp
+ *   ## {파일명1}
+ *   (파싱된 본문)
+ *   ---
+ *   ## {파일명2}
+ *   ...
+ */
+async function processReportDisclosure(
+  inst: Institution,
+  item: RegulationListItem,
+  prev: ManifestEntry | undefined,
+  args: Args,
+  category: AlioCategory,
+  reportFormRootNo: number
+): Promise<ManifestEntry | null> {
+  const disclosureNo = item.disclosureNo
+  if (!disclosureNo) {
+    return null
+  }
+
+  const files = await getReportDisclosureFiles(disclosureNo, reportFormRootNo)
+  if (files.length === 0) {
+    return {
+      regId: disclosureNo,
+      title: item.title,
+      category: category,
+      issuedAt: item.stDate || "",
+      revisedAt: item.idate || "",
+      sourceDetailUrl: `https://www.alio.go.kr/item/itemReport.do?seq=${disclosureNo}&disclosureNo=${disclosureNo}`,
+      primaryFileNo: "",
+      primaryFileName: "",
+      fileType: "unknown",
+      fileHash: "",
+      mdPath: "",
+      bytes: 0,
+      revisions: [],
+    }
+  }
+
+  // incremental: 첨부파일 fileNo 집합이 동일하고 재시도 옵션 없으면 그대로
+  const currentFileNoSet = files.map((f) => f.fileNo).sort().join(",")
+  if (prev) {
+    const prevFileNoSet = [prev.primaryFileNo, ...prev.revisions.map((r) => r.fileNo)]
+      .sort()
+      .join(",")
+    // --retry-failed: 전체 실패(parseError) 뿐 아니라 일부 첨부 실패(failedAttachments)도 재시도 대상
+    //   → ocrmac 같은 새 fallback 도입 후 부분 실패 첨부까지 재OCR 가능
+    const needsRetry =
+      (args.retryFailed && (!!prev.parseError || !!prev.failedAttachments)) ||
+      (args.retryFallback && !!prev.fallbackParser)
+    if (currentFileNoSet === prevFileNoSet && !needsRetry) return prev
+  }
+
+  if (args.dryRun) {
+    const primary = files[0]
+    return {
+      regId: disclosureNo,
+      title: item.title,
+      category: category,
+      issuedAt: item.stDate || "",
+      revisedAt: item.idate || "",
+      sourceDetailUrl: `https://www.alio.go.kr/item/itemReport.do?seq=${disclosureNo}&disclosureNo=${disclosureNo}`,
+      primaryFileNo: primary.fileNo,
+      primaryFileName: primary.filename,
+      fileType: detectFileType(primary.filename),
+      fileHash: "",
+      mdPath: `${category}/${disclosureNo}.md`,
+      bytes: 0,
+      revisions: files.slice(1).map((f) => ({ fileNo: f.fileNo, filename: f.filename })),
+    }
+  }
+
+  // 모든 첨부파일 다운로드 + 파싱 → 섹션으로 concat
+  const sections: string[] = []
+  let okCount = 0
+  let failCount = 0
+  let totalBytes = 0
+  const hashChunks: Buffer[] = []
+  let anyFallback: "docling" | "ocrmac" | undefined
+
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i]
+    const submissionNo = f.submissionNo || item.submissionNo || ""
+    try {
+      const dl = await downloadReportFile(f.fileNo, disclosureNo, submissionNo, reportFormRootNo)
+      const originalBytes = Buffer.from(new Uint8Array(dl.buffer))
+      totalBytes += originalBytes.length
+      hashChunks.push(originalBytes)
+
+      // ── ZIP 래퍼 unwrap ──
+      // ALIO 보고서형도 가끔 .zip 으로 압축된 첨부 (예: '최종협약.zip', '보충협약_YYYY.zip').
+      // 내부의 hwp/hwpx/pdf 를 추출해 파싱. 단일 문서면 unwrapZip, 묶음이면 bundle 로.
+      let parseBytes: Buffer = originalBytes
+      let displayName = f.filename
+      let unwrappedFromZip = false
+      if (looksLikeWrapperZip(f.filename)) {
+        const unwrapped = await unwrapZip(originalBytes, f.filename)
+        if (unwrapped) {
+          parseBytes = unwrapped.bytes
+          displayName = `${f.filename} → ${unwrapped.filename}`
+          unwrappedFromZip = true
+        }
+      }
+
+      const ab = parseBytes.buffer.slice(parseBytes.byteOffset, parseBytes.byteOffset + parseBytes.byteLength) as ArrayBuffer
+      const p = await parseAnnexFile(ab)
+
+      let md: string | undefined = p.success ? p.markdown : undefined
+      let err: string | undefined = p.success ? undefined : p.error || "unknown"
+
+      // unwrap 했는데도 파싱 실패면 사유에 ZIP unwrap 사실 명시
+      if (unwrappedFromZip && !p.success) {
+        err = `(${f.filename} 안의 ${displayName.split(" → ")[1]}) ${err}`
+      }
+
+      // 실패한 PDF(이미지 기반/미인식 무관) + 원시 이미지(jpg/png/gif 등) → OCR (ocrmac 우선, docling 보조)
+      if (!md && !p.success) {
+        const r = await ocrRecover(parseBytes, displayName, p.fileType, args)
+        if (r.md) {
+          md = r.md
+          err = undefined
+          if (r.parser === "ocrmac") anyFallback = "ocrmac"
+          else if (r.parser === "docling") anyFallback = anyFallback ?? "docling"
+        } else if (r.err) {
+          err = `kordoc: ${p.error}; ${r.err}`
+        }
+      }
+
+      // HWP 3.0 → soffice + docling
+      if (args.doclingFallback && !md && isHwp3(parseBytes)) {
+        const h = await parseHwp3(parseBytes, displayName)
+        if (h.success && h.markdown) {
+          md = h.markdown
+          err = undefined
+          anyFallback = "docling"
+        } else {
+          err = `kordoc: ${p.error}; hwp3-fallback: ${h.error || "unknown"}`
+        }
+      }
+
+      // xlsx fallback (보고서형은 거의 없지만 안전망)
+      if (!md && isXlsLike(displayName)) {
+        const x = await parseXlsFile(parseBytes, displayName)
+        if (x.success && x.markdown) {
+          md = x.markdown
+          err = undefined
+        }
+      }
+
+      if (md) {
+        sections.push(`\n---\n\n## ${i + 1}. ${displayName}\n\n${md}`)
+        okCount++
+      } else {
+        sections.push(`\n---\n\n## ${i + 1}. ${displayName}\n\n⚠️ 파싱 실패: ${err || "unknown"}`)
+        failCount++
+      }
+
+      if (args.keepRaw) {
+        const ext = inferExt(f.filename, p.fileType || "unknown")
+        const rawDir = path.join(institutionDir(inst.apbaId), category)
+        await fs.mkdir(rawDir, { recursive: true })
+        const rawAbs = path.join(rawDir, `${disclosureNo}.${f.fileNo}.raw${ext}`)
+        await fs.writeFile(rawAbs, originalBytes)
+      }
+    } catch (e) {
+      sections.push(`\n---\n\n## ${i + 1}. ${f.filename}\n\n⚠️ 다운로드 예외: ${(e as Error).message}`)
+      failCount++
+    }
+  }
+
+  const fileHash = hashBuffer(Buffer.concat(hashChunks))
+  const toc = files.map((f, i) => `${i + 1}. ${f.filename}`).join("\n")
+  const header = renderReportMdHeader(inst, item, category, files, okCount, failCount, anyFallback)
+  const body = `## 📑 첨부파일 목록 (${files.length}건)\n\n${toc}\n${sections.join("\n")}`
+
+  const mdRel = `${category}/${disclosureNo}.md`
+  const mdAbs = categoryDocMdPath(inst.apbaId, disclosureNo, category)
+  await fs.mkdir(path.dirname(mdAbs), { recursive: true })
+  await fs.writeFile(mdAbs, header + "\n\n" + body, "utf8")
+
+  const primary = files[0]
+  return {
+    regId: disclosureNo,
+    title: item.title,
+    category: category,
+    issuedAt: item.stDate || "",
+    revisedAt: item.idate || "",
+    sourceDetailUrl: `https://www.alio.go.kr/item/itemReport.do?seq=${disclosureNo}&disclosureNo=${disclosureNo}`,
+    primaryFileNo: primary.fileNo,
+    primaryFileName: primary.filename,
+    fileType: detectFileType(primary.filename),
+    fileHash,
+    mdPath: mdRel,
+    bytes: totalBytes,
+    parseError: failCount > 0 && okCount === 0 ? `전체 파싱 실패 (${failCount}건)` : undefined,
+    fallbackParser: anyFallback,
+    // 부분 실패 추적: 첨부 일부만 실패해도 --retry-failed 재시도 대상이 되도록 기록
+    failedAttachments: failCount > 0 ? failCount : undefined,
+    revisions: files.slice(1).map((f) => ({ fileNo: f.fileNo, filename: f.filename })),
+  }
+}
+
+function renderReportMdHeader(
+  inst: Institution,
+  item: RegulationListItem,
+  category: AlioCategory,
+  files: Array<{ fileNo: string; filename: string }>,
+  okCount: number,
+  failCount: number,
+  fallbackParser?: "docling" | "ocrmac"
+): string {
+  const categoryLabel: Record<AlioCategory, string> = {
+    "regulations": "내부규정",
+    "labor-agreements": "단체협약",
+    "wage-agreements": "임금협약",
+    "labor-council": "노사협의회 의결사항",
+  }
+  const lines: string[] = []
+  lines.push(`# ${item.title}`)
+  lines.push("")
+  lines.push(`- 기관: ${inst.apbaNa} (${inst.apbaId})`)
+  if (inst.jidtNa) lines.push(`- 주무부처: ${inst.jidtNa}`)
+  if (inst.typeNa) lines.push(`- 기관유형: ${inst.typeNa}`)
+  lines.push(`- 공시 카테고리: ${categoryLabel[category]}`)
+  if (item.stDate) lines.push(`- 게시일: ${item.stDate}`)
+  if (item.idate) lines.push(`- 최종 수정일: ${item.idate}`)
+  lines.push(`- 첨부파일: ${files.length}건 (파싱 성공 ${okCount}, 실패 ${failCount})`)
+  if (fallbackParser) lines.push(`- 파서: 일부 파일은 ${fallbackParser} fallback 사용`)
+  return lines.join("\n")
 }
 
 function renderMdHeader(
@@ -685,7 +1116,7 @@ function renderMdHeader(
   filename: string,
   fileType: string,
   unwrappedFrom?: string,
-  fallbackParser?: "docling"
+  fallbackParser?: "docling" | "ocrmac"
 ): string {
   const lines: string[] = []
   lines.push(`# ${item.title}`)
@@ -758,6 +1189,10 @@ async function main(): Promise<void> {
   let doneCount = 0
   const collected: InstitutionStats[] = []
 
+  // category != "regulations" → 보고서형 sync 흐름 사용
+  const reportFormRootNo = REPORT_FORM_ROOT_BY_CATEGORY[args.category]
+  log(`▶ 공시 카테고리: ${args.category} (reportFormRootNo=${reportFormRootNo})`)
+
   for (let w = 0; w < args.concurrency; w++) {
     workers.push(
       (async () => {
@@ -765,7 +1200,10 @@ async function main(): Promise<void> {
           const inst = queue.shift()
           if (!inst) break
           try {
-            const r = await syncInstitution(inst, args)
+            const r =
+              args.category === "regulations"
+                ? await syncInstitution(inst, args)
+                : await syncReportCategoryInstitution(inst, args, args.category, reportFormRootNo)
             collected.push(r)
             state.perInstitution[inst.apbaId] = {
               fetchedAt: new Date().toISOString(),

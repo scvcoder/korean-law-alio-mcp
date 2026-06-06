@@ -107,7 +107,7 @@ await r.run("[B5] list --json — 유효 JSON 배열 + 필드 schema", () => {
   assert(code === 0, `exit=${code}`)
   const data = JSON.parse(stdout)
   assert(Array.isArray(data), "최상위가 배열이 아님")
-  assert(data.length === 110, `도구 수 불일치 (expected=110, got=${data.length})`)
+  assert(data.length === 125, `도구 수 불일치 (expected=125, got=${data.length})`)
   for (const item of data) {
     assert(typeof item.name === "string" && item.name.length > 0, `name 누락: ${JSON.stringify(item)}`)
     assert(typeof item.category === "string", `category 누락: ${JSON.stringify(item)}`)

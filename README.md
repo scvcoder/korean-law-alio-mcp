@@ -3,14 +3,14 @@
 [![npm version](https://img.shields.io/npm/v/korean-law-alio-mcp.svg)](https://www.npmjs.com/package/korean-law-alio-mcp)
 [![MCP 1.27](https://img.shields.io/badge/MCP-1.27-blue)](https://modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Tools: 110](https://img.shields.io/badge/MCP%20Tools-110-blue.svg)](./docs/API.md)
+[![Tools: 125](https://img.shields.io/badge/MCP%20Tools-125-blue.svg)](./docs/API.md)
 [![ALIO Coverage: 35,000+](https://img.shields.io/badge/ALIO%20Regulations-35%2C000%2B-green.svg)](#-alio-공공기관-규정-fork-의-차별점)
 
 ---
 
 국가법령정보센터와 알리오의 공공기관 내부규정을 검색·비교·분석하는 MCP 입니다.
 
-법제처 87개 + ALIO 공공기관 규정 23개 총 110개 MCP 도구가 분석을 합니다.
+법제처 87개 + ALIO 공공기관 내부규정 23개 + ALIO 보고서형 공시(단체협약·임금협약·노사협의회 각 5개) 15개 = 총 125개 MCP 도구가 분석을 합니다.
 
 1,600 법률, 10,000 행정규칙, 수만건 판례, 344개 공공기관 35,000 내부규정을 검색하고 비교 및 분석한 결과를 AI에게 주어 좋은 답변을 만들도록 도와줍니다.
 
@@ -34,17 +34,18 @@
 
 ## v1.0.8 — 공공기관 규정과 법제처 법령을 한 번에
 
-원작 87개 법제처 도구 위에 **ALIO 공공기관 23개 + 두 영역을 잇는 연계 도구 3개** 를 통합 — 110개 도구가 1.27GB 데이터 (법제처 + 35,000건 공공기관 내부규정) 를 자연어로 검색·비교·분석.
+원작 87개 법제처 도구 위에 **ALIO 공공기관 23개 (내부규정) + 15개 (단체협약·임금협약·노사협의회 각 5개) + 두 영역을 잇는 연계 도구 3개** 를 통합 — 125개 도구가 법제처 데이터 + 35,000건 공공기관 내부규정 + 보고서형 공시(단체협약·임금협약·노사협의회)를 자연어로 검색·비교·분석.
 
 ### 개발 사항
 
 - **ALIO 23개 도구** — 344개 공공기관 35,000건 내부규정 통합
+- **ALIO 보고서형 공시 15개 도구** (v1.1.0~v1.3.0) — 단체협약·임금협약·노사협의회 의결사항 각 5개 (search/list/get/search_text/compare). 단일 팩토리(`tools/alio-report/`)로 생성
 - **공공기관과 법제처 연계 3개 도구** — 공공기관 규정과 법제처 법령을 잇는 연계 도구
   - 공공기관 규정에서 인용된 상위 법령 자동 추출 + 법제처에서 각 법령 정보 자동 조회
   - 법제처 법령을 입력하면, 그 법령을 근거로 삼는 공공기관 규정을 전국에서 역검색
   - 단일 규정 안에서 조문끼리 어떻게 인용·참조하는지 자동 분석
 - **설치 마법사** — `npx korean-law-alio-mcp setup` (API 키 → 운영 모드 → 클라이언트 다중 선택 → 설정 자동 등록)
-- **fly.io 원격 MCP 운영** — `https://korean-law-alio-mcp.fly.dev` (110개 도구 + ALIO 데이터, 서버가 죽지 않게 최대한 노력)
+- **fly.io 원격 MCP 운영** — `https://korean-law-alio-mcp.fly.dev` (125개 도구 + ALIO 데이터, 서버가 죽지 않게 최대한 노력)
 
 ### 예시 — 📜 법제처의 법률정보와 🏢 알리오의 공공기관 내부규정을 잇는 자연어 질의
 
@@ -211,7 +212,7 @@ korean-law-alio "OO진흥원 인사규정"                         # ALIO 자연
 korean-law-alio "OO진흥원 인사규정과 관련된 상위 법령"      # 두 영역 연계
 korean-law-alio "공공기관 휴직 규정 비교해줘"                # ALIO 기관간 비교
 korean-law-alio search_law --query "관세법"                 # 도구 직접 호출
-korean-law-alio list                                        # 전체 110개 도구 목록
+korean-law-alio list                                        # 전체 125개 도구 목록
 korean-law-alio list --category ALIO                        # 카테고리별 (ALIO/판례/법령검색 등)
 korean-law-alio help search_law                             # 도구별 도움말
 korean-law-alio                                             # REPL (대화형)
@@ -276,7 +277,7 @@ korean-law-alio                                             # REPL (대화형)
 
 ---
 
-## 도구 구조 (110개)
+## 도구 구조 (125개)
 
 | 구분 | 개수 | 비고 |
 |------|------|------|
@@ -290,7 +291,8 @@ korean-law-alio                                             # REPL (대화형)
 | 문서분석·유틸 | 8 | 조문번호 변환, 약칭 사전 등 |
 | ALIO 공공기관 규정 | 22 | 검색·조회·비교·벤치마킹·타임라인·통계 + 두 영역 연계 3종 |
 | ALIO 체인 도구 | 1 | 기관 종합 벤치마킹 |
-| **합계** | **110** | |
+| ALIO 보고서형 공시 | 15 | 단체협약·임금협약·노사협의회 각 5종 (검색·조회·비교) |
+| **합계** | **125** | |
 
 전체 도구 상세 (이름·파라미터·예시) 는 [`docs/API.md`](./docs/API.md) 참고.
 
@@ -298,7 +300,7 @@ korean-law-alio                                             # REPL (대화형)
 
 ## 주요 특징
 
-- **110개 도구 통합** — 법제처 87 + ALIO 공공기관 23
+- **125개 도구 통합** — 법제처 87 + ALIO 내부규정 23 + ALIO 보고서형 공시 15 (단체협약·임금협약·노사협의회)
 - **두 영역 연계** — 공공기관 규정의 인용 법령 자동 추출 + 상위법 기반 ALIO 역검색 + 조문간 인용 그래프
 - **자연어 라우팅** — 정식 기관명 자동 매칭 (수집된 344개 기관), 두 영역 자동 분기
 - **MCP + CLI** — Claude Desktop·Cursor·Windsurf 에서도, 터미널에서도 같은 도구 사용
@@ -327,7 +329,7 @@ korean-law-alio                                             # REPL (대화형)
 |------|------|
 | [`README.md`](./README.md) | 한글 README (현재 문서) |
 | [`README-EN.md`](./README-EN.md) | 영문 README |
-| [`docs/API.md`](./docs/API.md) | 110개 도구 레퍼런스 |
+| [`docs/API.md`](./docs/API.md) | 125개 도구 레퍼런스 |
 | [`LICENSE`](./LICENSE) | MIT |
 | [`NOTICE`](./NOTICE) | 사용한 외부 라이브러리·데이터의 출처와 라이선스 표기 |
 

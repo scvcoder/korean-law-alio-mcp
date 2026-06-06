@@ -21,13 +21,19 @@ await r.run("tsc --noEmit (타입체크)", () => {
 await r.run("tool-registry 모듈 로드 + 도구 수", async () => {
   const { allTools } = await import("../build/tool-registry.js")
   assert(Array.isArray(allTools), "allTools 배열 아님")
-  assert(allTools.length === 110, `도구 수 불일치: expected 110, got ${allTools.length}`)
+  // v1.3.0: 법제처 87 + ALIO 내부규정 23 + 보고서형(단체협약·임금협약·노사협의회) 5×3 = 125
+  assert(allTools.length === 125, `도구 수 불일치: expected 125, got ${allTools.length}`)
 })
 
-await r.run("ALIO 도구 23개 등록 확인", async () => {
+await r.run("ALIO 도구 38개 등록 확인 (내부규정 23 + 보고서형 15)", async () => {
   const { allTools } = await import("../build/tool-registry.js")
   const alioTools = allTools.filter((t) => t.description?.startsWith("[ALIO"))
-  assert(alioTools.length === 23, `ALIO 도구 수: expected 23, got ${alioTools.length}`)
+  assert(alioTools.length === 38, `ALIO 도구 수: expected 38, got ${alioTools.length}`)
+  // 보고서형 카테고리별 5개씩 확인
+  for (const [label, n] of [["단체협약", 5], ["임금협약", 5], ["노사협의회 의결사항", 5]]) {
+    const got = allTools.filter((t) => t.description?.startsWith(`[ALIO ${label}]`)).length
+    assert(got === n, `ALIO ${label} 도구 수: expected ${n}, got ${got}`)
+  }
 })
 
 await r.run("query-router 모듈 로드", async () => {

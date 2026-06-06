@@ -78,6 +78,14 @@ import { getBatchAlioRegulations, GetBatchAlioRegulationsSchema } from "./tools/
 import { parseAlioArticleLinks, ParseAlioArticleLinksSchema } from "./tools/alio/parse-article-links.js"
 import { analyzeAlioRegulation, AnalyzeAlioRegulationSchema } from "./tools/alio/analyze-regulation.js"
 import { chainAlioBenchmark, ChainAlioBenchmarkSchema } from "./tools/alio/chain-benchmark.js"
+// ALIO 보고서형 공시 도구 — 단체협약(v1.1.0)/임금협약(v1.2.0)/노사협의회(v1.3.0)
+// 세 카테고리 모두 동일한 보고서형 구조라 단일 팩토리로 5개 도구씩 생성.
+import { buildReportCategoryTools } from "./tools/alio-report/category-tools.js"
+import {
+  LABOR_AGREEMENTS_DESC,
+  WAGE_AGREEMENTS_DESC,
+  LABOR_COUNCIL_DESC,
+} from "./tools/alio-report/descriptors.js"
 // Chain tool imports
 import {
   chainLawSystem, chainLawSystemSchema,
@@ -797,6 +805,12 @@ export const allTools: McpTool[] = [
     schema: ChainAlioBenchmarkSchema,
     handler: chainAlioBenchmark
   },
+
+  // === ALIO 보고서형 공시 (단체협약 v1.1.0 / 임금협약 v1.2.0 / 노사협의회 v1.3.0) ===
+  // 각 카테고리당 5개 도구 (search_institution / list / get / search_text / compare).
+  ...buildReportCategoryTools(LABOR_AGREEMENTS_DESC),
+  ...buildReportCategoryTools(WAGE_AGREEMENTS_DESC),
+  ...buildReportCategoryTools(LABOR_COUNCIL_DESC),
 ]
 
 /**

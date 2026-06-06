@@ -8,8 +8,10 @@ import path from "node:path"
 import {
   institutionDir,
   manifestPath,
+  categoryManifestPath,
   institutionsIndexPath,
   syncStatePath,
+  type AlioCategory,
 } from "./paths.js"
 import type {
   Manifest,
@@ -44,6 +46,35 @@ export async function writeManifest(manifest: Manifest): Promise<void> {
     recursive: true,
   })
   await writeJson(manifestPath(manifest.apbaId), manifest)
+}
+
+/**
+ * 카테고리별 manifest 읽기.
+ * - regulations: {apbaId}/manifest.json (기존)
+ * - 그 외: {apbaId}/{category}/manifest.json
+ */
+export async function readCategoryManifest(
+  apbaId: string,
+  category: AlioCategory
+): Promise<Manifest | null> {
+  return readJsonIfExists<Manifest>(categoryManifestPath(apbaId, category))
+}
+
+/**
+ * 카테고리별 manifest 쓰기. 본문 MD 디렉터리도 같이 mkdir.
+ * - regulations: {apbaId}/manifest.json + {apbaId}/regulations/ (기존)
+ * - 그 외: {apbaId}/{category}/manifest.json + {apbaId}/{category}/
+ */
+export async function writeCategoryManifest(
+  manifest: Manifest,
+  category: AlioCategory
+): Promise<void> {
+  if (category === "regulations") {
+    await fs.mkdir(path.join(institutionDir(manifest.apbaId), "regulations"), { recursive: true })
+  } else {
+    await fs.mkdir(path.join(institutionDir(manifest.apbaId), category), { recursive: true })
+  }
+  await writeJson(categoryManifestPath(manifest.apbaId, category), manifest)
 }
 
 export async function readInstitutionsIndex(): Promise<InstitutionsIndex | null> {

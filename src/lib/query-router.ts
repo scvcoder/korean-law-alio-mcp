@@ -181,12 +181,104 @@ function extractAlioTopic(query: string): string | undefined {
   stripped = stripped
     .replace(/공공\s*기관|ALIO|자매\s*기관|동종\s*기관|피어\s*기관/gi, " ")
     .replace(/규정|지침|정관|내부규정|조문|조항/g, " ")
+    // v1.1.0+: 단체협약/임금협약/노사협의회 카테고리 식별자도 토픽 추출 시 불용어로 제거
+    // (실제 토픽은 휴가/수당/교섭/징계 같이 협약 안의 항목)
+    .replace(/단체\s*협약|임금\s*협약|노사\s*협의\s*회?|노사\s*협의\s*사항/g, " ")
     .replace(/비교|대조|벤치마킹/g, " ")
     .replace(/\b(C\d{4})\b/gi, " ")
     .replace(/검색|조회|확인|알려줘|찾아줘|보여줘/g, " ")
     .replace(/\s+/g, " ")
     .trim()
   return stripped.length >= 2 ? stripped : undefined
+}
+
+/**
+ * 보고서형 ALIO 카테고리(단체협약/임금협약/노사협의회) 의 5개 라우팅 패턴을 생성.
+ *
+ * 세 카테고리는 라벨 정규식과 도구명만 다르고 라우팅 구조가 동일하므로 팩토리로 생성한다.
+ * (compare / search_text / search_institution / list-by-name / list-by-code 순)
+ */
+function reportCategoryRoutes(opts: {
+  slug: string
+  /** 라벨 정규식 fragment (예: "단체\\s*협약") */
+  labelRe: string
+  /** 사람이 읽는 라벨 (reason 문구용) */
+  human: string
+  tools: { compare: string; searchText: string; searchInstitution: string; list: string }
+}): Pattern[] {
+  const { slug, labelRe: L, human, tools } = opts
+  return [
+    // (a) "○○ 비교" / "공공기관 ○○ 비교" → compare
+    {
+      name: `alio_${slug}_compare`,
+      patterns: [
+        new RegExp(`(?:공공\\s*기관|ALIO).*${L}.*(?:비교|대조)`, "i"),
+        new RegExp(`${L}.*(?:공공\\s*기관|ALIO).*(?:비교|대조)`, "i"),
+        new RegExp(`${L}.*(?:비교|대조)`, "i"),
+      ],
+      tool: tools.compare,
+      extract: (query) => {
+        const topic = extractAlioTopic(query)
+        return topic ? { topic } : { topic: query }
+      },
+      reason: `${human} + 비교 키워드 → 기관간 ${human} 토픽 비교`,
+      priority: 1,
+    },
+    // (b) "○○ ○○○ 검색/조회/찾기" → search_text
+    {
+      name: `alio_${slug}_search_text`,
+      patterns: [new RegExp(`${L}.*(?:검색|조회|찾)`)],
+      tool: tools.searchText,
+      extract: (query) => {
+        const topic = extractAlioTopic(query)
+        return topic ? { query: topic } : { _fallback: true, query }
+      },
+      reason: `${human} + 검색 키워드 → ${human} 전문 검색`,
+      priority: 1,
+    },
+    // (c) "○○ 있는 공공기관" → search_institution
+    {
+      name: `alio_${slug}_search_institution`,
+      patterns: [
+        new RegExp(`${L}\\s*(?:있는|보유|등록된)\\s*(?:공공\\s*기관|기관)`),
+        new RegExp(`(?:공공\\s*기관|기관).*${L}\\s*(?:있|보유|등록)`),
+      ],
+      tool: tools.searchInstitution,
+      extract: () => ({}),
+      reason: `${human} 보유 기관 검색`,
+      priority: 1,
+    },
+    // (d) 정식 기관명 + ○○ → list
+    {
+      name: `alio_${slug}_by_institution`,
+      patterns: [new RegExp(`^(.+?)\\s+${L}\\s*$`)],
+      tool: tools.list,
+      extract: (_query, match) => {
+        const prefix = match?.[1]?.trim()
+        if (!prefix) return { _skip: true }
+        const inst = lookupInstitutionByName(prefix)
+        if (!inst) return { _skip: true }
+        return { institution: inst.apbaId }
+      },
+      reason: `정식 기관명 + ${human} → ${human} 목록`,
+      priority: 1,
+    },
+    // (e) apbaId/alias + ○○ → list
+    {
+      name: `alio_${slug}_by_code`,
+      patterns: (() => {
+        const tokenAlt = ALIAS_ALTERNATION ? `${ALIAS_ALTERNATION}|C\\d{4}` : `C\\d{4}`
+        return [new RegExp(`(${tokenAlt}).*${L}`), new RegExp(`${L}.*(${tokenAlt})`)]
+      })(),
+      tool: tools.list,
+      extract: (query) => {
+        const inst = extractAlioInstitution(query)
+        return inst ? { institution: inst } : { _fallback: true, query }
+      },
+      reason: `기관 식별자 + ${human} → ${human} 목록`,
+      priority: 2,
+    },
+  ]
 }
 
 // ────────────────────────────────────────
@@ -734,6 +826,45 @@ const routePatterns: Pattern[] = [
     reason: "기관명+규정+인용/참조 키워드 → 조문간 인용 그래프 분석",
     priority: 1,
   },
+
+  // ─────────────────────────────────────────
+  // ALIO 보고서형 공시 — 단체협약(v1.1.0)/임금협약(v1.2.0)/노사협의회(v1.3.0)
+  // 세 카테고리 모두 동일 구조라 reportCategoryRoutes 팩토리로 5개씩 생성.
+  // 내부규정 패턴보다 더 specific 키워드(협약/협의회)를 먼저 매칭.
+  // ─────────────────────────────────────────
+  ...reportCategoryRoutes({
+    slug: "labor_agreement",
+    labelRe: "단체\\s*협약",
+    human: "단체협약",
+    tools: {
+      compare: "compare_alio_labor_agreements",
+      searchText: "search_alio_labor_agreement_text",
+      searchInstitution: "search_institution_labor_agreements",
+      list: "list_alio_labor_agreements",
+    },
+  }),
+  ...reportCategoryRoutes({
+    slug: "wage_agreement",
+    labelRe: "임금\\s*협약",
+    human: "임금협약",
+    tools: {
+      compare: "compare_alio_wage_agreements",
+      searchText: "search_alio_wage_agreement_text",
+      searchInstitution: "search_institution_wage_agreements",
+      list: "list_alio_wage_agreements",
+    },
+  }),
+  ...reportCategoryRoutes({
+    slug: "labor_council",
+    labelRe: "노사\\s*협의\\s*회",
+    human: "노사협의회",
+    tools: {
+      compare: "compare_alio_labor_council",
+      searchText: "search_alio_labor_council_text",
+      searchInstitution: "search_institution_labor_council",
+      list: "list_alio_labor_council",
+    },
+  }),
 
   // ── ALIO 정식 기관명 + 규정 패턴 (institutions.json 동기 조회로 검증) ──
   // 환경변수 alias 미설정 상태에서도 "한국인터넷진흥원 인사규정" 같이

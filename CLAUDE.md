@@ -7,7 +7,7 @@
 > - 본 fork 의 변경 동기와 향후 계획은 [ROADMAP.md](./ROADMAP.md), 변경 이력은 [CHANGELOG.md](./CHANGELOG.md)
 > - **원작자(@chrisryugj/@Mongmini)의 v2.2 시점 원문 가이드**는 [CLAUDE-UPSTREAM.md](./CLAUDE-UPSTREAM.md) 에 그대로 보존되어 있습니다.
 
-**Korean Law + ALIO MCP Server** — 법제처 OpenAPI(법령·판례·행정규칙·자치법규·해석례 등) 87개 도구 + ALIO 공공기관 내부규정 23개 도구 = **총 110개 MCP 도구** + 자연어 CLI.
+**Korean Law + ALIO MCP Server** — 법제처 OpenAPI(법령·판례·행정규칙·자치법규·해석례 등) 87개 도구 + ALIO 공공기관 내부규정 23개 + ALIO 보고서형 공시(단체협약·임금협약·노사협의회 각 5개) 15개 = **총 125개 MCP 도구** + 자연어 CLI.
 
 ## Structure
 
@@ -15,9 +15,10 @@
 src/
 ├── index.ts              # 엔트리포인트 (STDIO/HTTP 모드 선택)
 ├── cli.ts                # CLI v2 — 자연어 라우팅 + REPL
-├── tool-registry.ts      # 모든 도구(법제처 87 + ALIO 10) 정의/등록
+├── tool-registry.ts      # 모든 도구(법제처 87 + ALIO 38) 정의/등록
 ├── tools/                # 도구 구현 (각 ~200줄 목표)
-│   └── alio/             # ALIO 공공기관 규정 도구 10개
+│   ├── alio/             # ALIO 공공기관 내부규정 도구 (23개)
+│   └── alio-report/      # ALIO 보고서형 공시 도구 팩토리 — 단체협약/임금협약/노사협의회 (각 5개)
 ├── scripts/
 │   └── alio-sync.ts      # ALIO 일괄 수집 배치 (npm run alio:sync)
 ├── lib/                  # 공통 유틸/파서/클라이언트
@@ -36,7 +37,7 @@ npm run watch         # 개발 모드 (tsc --watch)
 LAW_OC=키 node build/index.js  # MCP 서버 실행 (STDIO 모드)
 
 # ALIO 공공기관 내부규정 일괄 수집 (배치)
-npm run alio:sync                              # ALIO 공시 전체 기관
+npm run alio:sync                              # ALIO 공시 전체 기관 (default: 내부규정 21110)
 npm run alio:sync -- --only C0xxx              # 단일 기관 (apbaId 지정)
 npm run alio:sync -- --only C0xxx --limit 10   # smoke test
 npm run alio:sync -- --resume                  # 실패 기관만 재시도
@@ -44,6 +45,12 @@ npm run alio:sync -- --retry-failed            # parseError 가 남은 규정만
 npm run alio:sync -- --retry-fallback          # 기존 fallback 결과를 새 엔진으로 재생성
 npm run alio:sync -- --docling-fallback        # 스캔 이미지 PDF 를 docling OCR 로 복구
 npm run alio:sync -- --concurrency 3 --keep-raw
+
+# 보고서형 공시 카테고리 (reportGbn=Y) — 단체협약/임금협약/노사협의회
+npm run alio:sync -- --category labor-agreements                    # 단체협약 (21026, v1.1.0)
+npm run alio:sync -- --category wage-agreements                     # 임금협약 (21027, v1.2.0)
+npm run alio:sync -- --category labor-council                       # 노사협의회 의결사항 (21028, v1.3.0)
+npm run alio:sync -- --category wage-agreements --only C0187        # 단일 기관
 ```
 
 ### docling OCR fallback (선택)
@@ -64,19 +71,31 @@ manifest entry 에 `fallbackParser: "docling"`, MD 상단 주석 `<!-- parsed by
 
 ## ALIO 데이터 구조
 
+v1.1.0 부터 카테고리별 디렉터리 분리. 내부규정은 backward compat 위해 기존 경로 유지.
+
 ```
 data/alio/                              # .gitignore 됨 (재생성 가능)
-├── institutions.json                   # 공공기관 메타 (sync 결과)
+├── institutions.json                   # 공공기관 메타 (sync 결과 — 카테고리 공통)
 ├── sync-state.json                     # 마지막 sync 시각/실패 로그
 └── {apbaId}/                           # 예: C0xxx (기관코드)
-    ├── manifest.json                   # 규정 목록 + 개정이력 + 콘텐츠 해시
-    └── regulations/
-        ├── {regId}.md                  # kordoc 변환 markdown
-        └── {regId}.raw.hwp             # (--keep-raw 시) 원본 보존
+    │
+    ├── manifest.json                   # [내부규정] 목록 + 개정이력 + 콘텐츠 해시
+    ├── regulations/                    # [내부규정] 본문
+    │   ├── {regId}.md                  # kordoc 변환 markdown (regId = ALIO idx)
+    │   └── {regId}.raw.hwp             # (--keep-raw 시) 원본 보존
+    │
+    ├── labor-agreements/               # [단체협약] v1.1.0+ (reportFormRootNo=21026)
+    │   ├── manifest.json               # 보고서형 — 연도별 disclosure 목록
+    │   └── {disclosureNo}.md           # 통합 MD (협약서 PDF + 주요내용 + 신구대비표 등 모든 첨부 concat)
+    ├── wage-agreements/                # [임금협약] v1.2.0+ (reportFormRootNo=21027) — 구조 동일
+    └── labor-council/                  # [노사협의회 의결사항] v1.3.0+ (reportFormRootNo=21028) — 구조 동일
 ```
 
+**카테고리별 차이**:
+- **내부규정** (게시판형, reportGbn=N): regId = `idx` (RULE_NO). 한 entry = 한 규정 + 개정이력 (revisions). detail URL: `/item/itemBoard21110.do`.
+- **보고서형** (단체협약·임금협약·노사협의회, reportGbn=Y): regId = `disclosureNo` (연도별). 한 entry = 한 보고서 + N개 첨부파일 (모두 1 MD 로 concat). detail URL: `/item/itemReport.do?seq=...`. 세 카테고리 모두 동일 구조라 sync(`syncReportCategoryInstitution`)·런타임 도구(`tools/alio-report/`)·라우팅을 단일 코드경로로 공유.
+
 `apbaId` 형식: `C` + 4자리 숫자. 정확한 매핑은 sync 후 `data/alio/institutions.json` 참고.
-`regId` = ALIO 내부의 `idx` 값. manifest 의 `primaryFileNo` + `revisions[]` 로 개정 이력 추적.
 
 ## Environment
 
@@ -154,8 +173,10 @@ get_law_text(mst, jo="006300") → 제63조(휴직) 조회
 | 파일 | 역할 |
 |------|------|
 | `cli.ts` | CLI v2 — 자연어 라우팅 + REPL |
-| `tool-registry.ts` | 110개 도구 정의/등록 |
-| `lib/query-router.ts` | 자연어 → 도구 자동 라우팅 엔진 |
+| `tool-registry.ts` | 125개 도구 정의/등록 |
+| `tools/alio-report/category-tools.ts` | 보고서형 카테고리(단체협약/임금협약/노사협의회) 5개 도구 생성 팩토리 |
+| `tools/alio-report/descriptors.ts` | 보고서형 카테고리별 라벨·도구명·토픽 예시 descriptor |
+| `lib/query-router.ts` | 자연어 → 도구 자동 라우팅 엔진 (`reportCategoryRoutes` 로 보고서형 라우팅 생성) |
 | `lib/api-client.ts` | 법제처 OpenAPI 클라이언트 |
 | `lib/fetch-with-retry.ts` | 30초 타임아웃, 3회 재시도 |
 | `lib/session-state.ts` | 멀티세션 API 키 격리 |
@@ -179,7 +200,7 @@ get_law_text(mst, jo="006300") → 제63조(휴직) 조회
 - [README-EN.md](./README-EN.md) — English version
 - [ROADMAP.md](./ROADMAP.md) — 본 fork 의 변경 동기 + 향후 계획 + 감사의 말
 - [CHANGELOG.md](./CHANGELOG.md) — 본 fork 의 변경 이력
-- [docs/API.md](./docs/API.md) — 110개 도구 레퍼런스
+- [docs/API.md](./docs/API.md) — 125개 도구 레퍼런스
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — 시스템 설계
 - [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) — 개발 가이드
 - [LICENSE](./LICENSE) — MIT

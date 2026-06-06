@@ -3,14 +3,14 @@
 [![npm version](https://img.shields.io/npm/v/korean-law-alio-mcp.svg)](https://www.npmjs.com/package/korean-law-alio-mcp)
 [![MCP 1.27](https://img.shields.io/badge/MCP-1.27-blue)](https://modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Tools: 110](https://img.shields.io/badge/MCP%20Tools-110-blue.svg)](./docs/API.md)
+[![Tools: 125](https://img.shields.io/badge/MCP%20Tools-125-blue.svg)](./docs/API.md)
 [![ALIO Coverage: 35,000+](https://img.shields.io/badge/ALIO%20Regulations-35%2C000%2B-green.svg)](#-what-this-fork-adds-vs-upstream-v22)
 
 ---
 
-An MCP for searching, comparing, and analyzing Korean national law (법제처) and the internal regulations of public institutions (ALIO).
+An MCP for searching, comparing, and analyzing Korean national law (법제처), the internal regulations of public institutions (ALIO), and collective bargaining agreements.
 
-110 MCP tools — 87 Korean Law portal + 23 ALIO public-institution regulations — perform the analysis.
+125 MCP tools — 87 Korean Law portal + 23 ALIO internal regulations + 15 ALIO report-style disclosures (collective bargaining / wage agreements / labor-management council, 5 each) — perform the analysis.
 
 Searches and compares 1,600 active laws, 10,000 administrative rules, tens of thousands of court precedents, and 35,000 internal regulations across 344 public institutions, then feeds the results to your AI assistant for higher-quality answers.
 
@@ -34,17 +34,18 @@ May this help those who find legal access difficult, and the public-institution 
 
 ## v1.0.8 — Bridging Public-Institution Regulations with Korean National Law
 
-On top of the upstream's 87 Korean-Law tools, this fork adds **23 ALIO public-institution tools + 3 tools that link the two areas** — 110 tools that search, compare, and analyze 1.27 GB of data (Korean Law portal + 35,000 public-institution internal regulations) through natural language.
+On top of the upstream's 87 Korean-Law tools, this fork adds **23 ALIO public-institution internal-regulation tools + 15 ALIO report-style disclosure tools (collective bargaining / wage agreements / labor-management council, 5 each, v1.1.0~v1.3.0) + 3 tools that link the two areas** — 125 tools that search, compare, and analyze Korean Law portal data + 35,000 public-institution internal regulations + report-style disclosures through natural language.
 
 ### What this fork adds
 
 - **23 ALIO tools** — integrates 35,000 internal regulations from 344 Korean public institutions
+- **15 ALIO report-style disclosure tools (v1.1.0~v1.3.0)** — collective bargaining / wage agreements / labor-management council, 5 each (search / list / get / full-text search / cross-institution compare). Generated from a single factory (`tools/alio-report/`)
 - **3 tools that link public-institution regulations with Korean national laws**
   - Auto-extracts upper laws cited in a public-institution regulation's body and looks up each law's identifier at the Korean Law portal
   - Given a Korean Law portal statute, reverse-looks up the public-institution regulations across the country that cite it
   - Analyzes how articles within a single regulation cite/refer to one another
 - **Setup wizard** — `npx korean-law-alio-mcp setup` (API key → operating mode → multi-client selection → config auto-registration)
-- **fly.io remote MCP** — `https://korean-law-alio-mcp.fly.dev` (110 tools + ALIO data; best-effort to keep it running)
+- **fly.io remote MCP** — `https://korean-law-alio-mcp.fly.dev` (125 tools + ALIO data; best-effort to keep it running)
 
 ### Example — natural-language queries linking 📜 the Korean Law portal and 🏢 ALIO public-institution internal regulations
 
@@ -211,7 +212,7 @@ korean-law-alio "OO진흥원 인사규정"                         # ALIO (natur
 korean-law-alio "OO진흥원 인사규정과 관련된 상위 법령"      # Cross-area linkage
 korean-law-alio "공공기관 휴직 규정 비교해줘"                # ALIO peer comparison
 korean-law-alio search_law --query "관세법"                 # Direct tool call
-korean-law-alio list                                        # All 110 tools
+korean-law-alio list                                        # All 125 tools
 korean-law-alio list --category ALIO                        # Filter by category
 korean-law-alio help search_law                             # Per-tool help
 korean-law-alio                                             # REPL (interactive)
@@ -276,7 +277,7 @@ Public-institution internal regulations inherently delegate from / cite upper na
 
 ---
 
-## Tool structure (110)
+## Tool structure (125)
 
 | Group | Count | Notes |
 |-------|------:|-------|
@@ -290,7 +291,8 @@ Public-institution internal regulations inherently delegate from / cite upper na
 | Doc analysis · utils | 8 | article-number conversion, abbreviation dict, etc. |
 | ALIO public-institution regulations | 22 | search · get · compare · benchmark · timeline · stats + 3 linkage tools |
 | ALIO chain | 1 | institution benchmarking |
-| **Total** | **110** | |
+| ALIO report-style disclosures | 15 | collective bargaining / wage agreements / labor-management council, 5 each (search · get · compare) |
+| **Total** | **125** | |
 
 Per-tool details (names · parameters · examples) are in [`docs/API.md`](./docs/API.md).
 
@@ -298,7 +300,7 @@ Per-tool details (names · parameters · examples) are in [`docs/API.md`](./docs
 
 ## Highlights
 
-- **110 integrated tools** — 87 Korean Law portal + 23 ALIO public-institution
+- **125 integrated tools** — 87 Korean Law portal + 23 ALIO internal regulations + 15 ALIO report-style disclosures (collective bargaining / wage / labor-management council)
 - **Cross-area linkage** — auto-extract upper laws cited by a regulation + reverse lookup ALIO regulations from a national law + intra-document citation graph
 - **Natural-language routing** — canonical institution-name auto-matching (across 344 collected institutions), automatic branching across both areas
 - **MCP + CLI** — same tools usable from Claude Desktop · Cursor · Windsurf and from the terminal
@@ -327,7 +329,7 @@ See [`.env.example`](./.env.example) for the full list with examples.
 |------|---------|
 | [`README-EN.md`](./README-EN.md) | English README (this document) |
 | [`README.md`](./README.md) | Korean README |
-| [`docs/API.md`](./docs/API.md) | 110-tool reference |
+| [`docs/API.md`](./docs/API.md) | 125-tool reference |
 | [`LICENSE`](./LICENSE) | MIT |
 | [`NOTICE`](./NOTICE) | Sources and licenses of external libraries and data used |
 

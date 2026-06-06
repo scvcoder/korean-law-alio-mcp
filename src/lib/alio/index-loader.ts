@@ -1,18 +1,34 @@
 /**
  * 런타임 인덱서
  *
- * MCP 런타임이 디스크의 institutions.json 과 모든 기관의 manifest.json 을 읽어
+ * MCP 런타임이 디스크의 institutions.json 과 각 기관의 manifest.json 을 읽어
  * 메모리에 기관 목록/규정 메타 인덱스를 구축한다. 파일 I/O는 최초 1회만, 이후 TTL 만료시 재로딩.
+ *
+ * 카테고리별 분리 (v1.1.0+):
+ *   - regulations (내부규정, default — 기존 동작 유지)
+ *   - labor-agreements (단체협약 — 신규)
+ *   - wage-agreements (임금협약 — v1.2.0+)
+ *   - labor-council (노사협의회 — v1.3.0+)
+ *
+ * 각 카테고리는 별도 IndexCache 인스턴스로 보관. 기존 호출부 (내부규정 도구) 는 default
+ * 인자로 그대로 동작 — backward compat.
  */
 
 import fs from "node:fs/promises"
 import path from "node:path"
-import { alioDataDir, manifestPath, regulationMdPath } from "./paths.js"
+import {
+  alioDataDir,
+  regulationMdPath,
+  categoryManifestPath,
+  categoryDocMdPath,
+  type AlioCategory,
+} from "./paths.js"
 import { readJsonIfExists } from "./manifest.js"
 import type { Institution, InstitutionsIndex, Manifest, ManifestEntry } from "./types.js"
 
 interface IndexCache {
   loadedAt: number
+  category: AlioCategory
   institutions: Institution[]
   /** apbaId → Manifest */
   manifests: Map<string, Manifest>
@@ -20,12 +36,21 @@ interface IndexCache {
   flatRegulations: Array<{ inst: Institution; entry: ManifestEntry }>
 }
 
-let cache: IndexCache | null = null
+/** 카테고리별 캐시 — 같은 카테고리 호출은 TTL 안에 재사용 */
+const caches = new Map<AlioCategory, IndexCache>()
 const TTL_MS = 10 * 60 * 1000 // 10분
 
-export async function loadIndex(force = false): Promise<IndexCache> {
+export async function loadIndex(
+  categoryOrForce: AlioCategory | boolean = "regulations",
+  force = false
+): Promise<IndexCache> {
+  // Backward compat: 기존 호출 `loadIndex(true)` 는 regulations 강제 재로드로 해석
+  const category: AlioCategory = typeof categoryOrForce === "boolean" ? "regulations" : categoryOrForce
+  const forceReload = typeof categoryOrForce === "boolean" ? categoryOrForce : force
+
   const now = Date.now()
-  if (!force && cache && now - cache.loadedAt < TTL_MS) return cache
+  const existing = caches.get(category)
+  if (!forceReload && existing && now - existing.loadedAt < TTL_MS) return existing
 
   const idxFile = await readJsonIfExists<InstitutionsIndex>(
     path.join(alioDataDir(), "institutions.json")
@@ -48,7 +73,7 @@ export async function loadIndex(force = false): Promise<IndexCache> {
   }
 
   for (const apbaId of scannedIds) {
-    const mf = await readJsonIfExists<Manifest>(manifestPath(apbaId))
+    const mf = await readJsonIfExists<Manifest>(categoryManifestPath(apbaId, category))
     if (!mf) continue
     manifests.set(apbaId, mf)
     const inst =
@@ -63,19 +88,36 @@ export async function loadIndex(force = false): Promise<IndexCache> {
     for (const entry of mf.regulations) flat.push({ inst, entry })
   }
 
-  cache = {
+  const cache: IndexCache = {
     loadedAt: now,
+    category,
     institutions,
     manifests,
     flatRegulations: flat,
   }
+  caches.set(category, cache)
   return cache
 }
 
-/** 한 규정의 본문 markdown 을 디스크에서 읽는다 */
+/** 한 규정의 본문 markdown 을 디스크에서 읽는다 (기존 호환 — regulations 카테고리) */
 export async function readRegulationMd(apbaId: string, regId: string): Promise<string | null> {
   try {
     return await fs.readFile(regulationMdPath(apbaId, regId), "utf8")
+  } catch (err: unknown) {
+    const code = (err as NodeJS.ErrnoException)?.code
+    if (code === "ENOENT") return null
+    throw err
+  }
+}
+
+/** 카테고리별 문서 본문 markdown 읽기 (v1.1.0+) */
+export async function readCategoryDocMd(
+  apbaId: string,
+  docId: string,
+  category: AlioCategory = "regulations"
+): Promise<string | null> {
+  try {
+    return await fs.readFile(categoryDocMdPath(apbaId, docId, category), "utf8")
   } catch (err: unknown) {
     const code = (err as NodeJS.ErrnoException)?.code
     if (code === "ENOENT") return null
@@ -116,8 +158,12 @@ export function findInstitution(
 }
 
 /** 캐시 무효화 (sync 직후 호출 가능) */
-export function invalidateIndex(): void {
-  cache = null
+export function invalidateIndex(category?: AlioCategory): void {
+  if (category) {
+    caches.delete(category)
+  } else {
+    caches.clear()
+  }
 }
 
 /**
