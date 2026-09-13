@@ -4,7 +4,7 @@
 
 ## [1.3.1] - 2026-09-04
 
-> **ALIO 데이터 전체 현행화**: 2026-06-06 수집분 이후 3개월간의 신규·개정 공시를 4개 카테고리 전체에 반영. 도구/코드 변경 없음 — 수집 데이터만 갱신.
+> **ALIO 데이터 전체 현행화 + 배포 채널 3종 릴리스**: 2026-06-06 수집분 이후 3개월간의 신규·개정 공시를 4개 카테고리 전체에 반영 (sync 2026-09-04). 도구 로직 변경 없음. 이어서 2026-09-13 에 버전 트랙을 1.3.1 로 통일하고 Fly.io · GitHub Release · npm 세 채널을 모두 이 데이터/버전으로 릴리스 완료.
 
 ### 전체 sync 결과 (355/355 기관, 기관 단위 실패 0)
 
@@ -24,11 +24,12 @@
 
 - **버전 트랙 통일** — `package.json` `1.0.8` → **`1.3.1`**. v1.1.0~v1.3.0 은 CHANGELOG 에만 기록되고 npm/git tag 는 1.0.8 에 머물러 두 트랙이 갈라져 있었음. 이번부터 package.json · git tag · npm · CHANGELOG 를 하나의 번호로 맞춤. README/README-EN 헤더도 v1.3.1 로 갱신.
 - **배포 채널 3종 모두 현행화** — 2026-06 이후 코드(보고서형 15개 도구)와 데이터가 Fly.io 원격에만 반영되고 npm/Release 는 5/10 에 멈춰 있던 상태를 해소.
-  | 채널 | 이전 | 이후 |
+  | 채널 | 이전 | 이후 (2026-09-13 릴리스, 검증 완료) |
   |---|---|---|
-  | Fly.io 원격 (`korean-law-alio-mcp.fly.dev`) | 데이터 9/4, 버전 표시 1.0.8 | 데이터 9/4, **1.3.1** |
-  | GitHub Release `alio-data.tar.gz` (`setup`/`fetch-data` 가 받는 파일) | **5/10, 303MB — 보고서형 3종 데이터 전무** | **9/4, 4개 카테고리 전체** |
-  | npm `korean-law-alio-mcp` | 1.0.8 (도구 110개) | **1.3.1 (도구 125개)** |
+  | Fly.io 원격 (`korean-law-alio-mcp.fly.dev`) | 데이터 9/4 (9/4 deploy, v9), 버전 표시 1.0.8 | 데이터 9/4, **1.3.1** (v10) — `GET /` → `"version":"1.3.1"` |
+  | GitHub Release `alio-data.tar.gz` (`setup`/`fetch-data` 가 받는 파일) | v1.0.8 (**5/10, 303MB — 보고서형 3종 데이터 전무**) | **v1.3.1 (9/4 데이터, 1.32GB, 4개 카테고리 전체)** — `releases/latest` 가 새 자산으로 리다이렉트 확인 |
+  | npm `korean-law-alio-mcp` | 1.0.8 (도구 110개, 5/10) | **1.3.1 (도구 125개)** — `dist-tags.latest = 1.3.1` 확인 |
+  | git | tag `v1.0.8` | tag **`v1.3.1`** (`974e76a`) |
 - **Dockerfile / .dockerignore 주석·패턴 정리** — 이미지 크기 주석 ~1.3GB → ~2.4GB, 도구 수 23 → 38 반영. `.dockerignore` 의 `data/sync-state.json` 이 실제 경로 `data/alio/sync-state.json` 과 달라 제외되지 않던 것을 수정.
 
 ### Fixed
@@ -40,10 +41,17 @@
 - **잔존 파싱 실패 28건** (6월 27건 → 28건, 전체의 0.06%). 신규 문서 중 스캔 이미지 PDF 증가분이 반영된 결과이며 docling(tesseract) + ocrmac(Apple Vision) 2단 OCR 로도 복구되지 않음.
   - 내부규정 8건 — HWPX 섹션 누락 1건, 미지원 파일 형식 7건
   - 임금협약 1건 / 노사협의회 19건 — 첨부 전체 파싱 실패 (여수광양항만공사 9건이 최다)
+- **`test/law.test.mjs` 2건 실패 — 법제처 검색 순위 의존** — `search_law("민법")` 의 1순위 결과 MST 로 제1조를 요청하는데, 2026-09 현재 법제처 API 가 **난민법**(MST 188376) 을 1순위로 반환해 `get_law_text` / `get_article_detail` 케이스가 `EXTERNAL_API_ERROR` 로 실패. 코드 결함이 아닌 테스트의 외부 순위 의존 문제 (나머지 85건 + 빌드/라우터/CLI/ALIO 스위트 전부 통과). 정확 일치 결과를 고르거나 MST 를 고정하도록 테스트 수정 필요.
 - **규정 단위 수집 실패는 sync-state 에 기록되지 않음** — `sync-state.json` 의 `perInstitution` 은 기관 단위 status 만 저장한다. 개별 규정이 네트워크/타임아웃으로 실패하면 기존 manifest entry 를 그대로 유지하므로([alio-sync.ts](./src/scripts/alio-sync.ts) `syncInstitution`) 데이터 유실은 없으나, `parseError` 가 남지 않아 `--retry-failed` 로도 재시도되지 않는다. 현재는 sync 로그의 `! {regId} "{title}" 실패:` 라인으로만 식별 가능.
 
 ### Notes
 
+- **ALIO 데이터 배포 채널은 3개이며 서로 독립** — `npm run alio:sync` 만으로는 어느 채널도 갱신되지 않는다. 현행화 절차:
+  1. `npm run alio:sync` (카테고리 4종) → CHANGELOG → 커밋 + `git tag vX.Y.Z` + push
+  2. **Fly.io**: 로컬에서 `flyctl deploy`. [Dockerfile](./Dockerfile) 이 `COPY data ./data` 로 **로컬 `data/alio/` 를 이미지에 굽는다** (Mode B). `.gitignore` 와 무관하게 `.dockerignore` 가 포함 여부를 결정. 이미지 ~2.4GB, 15~25분.
+  3. **GitHub Release**: `cd data && tar --exclude='.DS_Store' --exclude='*.raw.*' --exclude='*.hwp' --exclude='*.hwpx' --exclude='sync-state.json' -czf alio-data.tar.gz alio` → `gh release create vX.Y.Z alio-data.tar.gz --latest`. 최상위가 `alio/` 인 구조를 [setup.ts](./src/scripts/setup.ts) 가 기대함. GitHub 자산 한도 2GB (현재 1.32GB).
+  4. **npm**: `npm publish` (코드만 263KB, 데이터 미포함). 계정 2FA 활성 → CLI `npm login` 대신 **Granular Access Token (Read and write + Bypass 2FA)** 을 발급해 임시 `.npmrc` 의 `${NODE_AUTH_TOKEN}` 참조로 publish. Bypass 2FA 없는 토큰은 `403 Two-factor authentication ... required`.
+  - GitHub CI([ci.yml](./.github/workflows/ci.yml))는 build + test 만 수행하고 배포하지 않는다. 데이터가 git 에 없으므로 CI 에서 Docker 빌드/배포로 전환하려면 별도 데이터 공급 경로가 필요.
 - **sync 소요 시간의 병목은 ALIO 서버 응답 시간** — TCP connect 0.02~0.04초 대비 TTFB 1.0~2.3초. incremental sync 라도 변경 여부 판정을 위해 문서마다 detail 페이지를 1회씩 조회해야 하므로(ALIO 에 "변경분 조회" API 없음) 문서 수 × TTFB ÷ concurrency 가 그대로 소요 시간이 된다. 절약되는 것은 파일 다운로드와 OCR 뿐.
 
 ---
