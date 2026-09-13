@@ -71,7 +71,7 @@ test/
 *.test.ts
 
 # === ALIO 내부 sync 상태 + 원본 파일 (런타임 불필요) ===
-data/sync-state.json
+data/alio/sync-state.json
 data/**/*.raw.*
 data/**/*.hwp
 data/**/*.hwpx

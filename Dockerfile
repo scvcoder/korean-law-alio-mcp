@@ -2,9 +2,9 @@
 #
 # 본 이미지 구성:
 #   - 법제처 87개 도구: 외부 API 호출 (LAW_OC secret 필요)
-#   - ALIO 23개 도구: data/alio/ 를 이미지에 굽기 (~1.3GB) — 원격에서 즉시 사용 가능
+#   - ALIO 38개 도구(내부규정 23 + 보고서형 15): data/alio/ 를 이미지에 굽기 (~2.4GB) — 원격에서 즉시 사용 가능
 #     · manifest.json 은 메모리 인덱스로 로드 (~36MB → ~80-100MB heap)
-#     · regulations/*.md 는 디스크에서 on-demand 읽기
+#     · regulations/*.md 및 보고서형 3종(labor-agreements/wage-agreements/labor-council) MD 는 디스크에서 on-demand 읽기
 #   - .dockerignore 가 secrets/.env/.git/dev artifact 모두 제외
 #
 # 데이터 업데이트 워크플로:

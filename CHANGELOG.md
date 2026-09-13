@@ -20,6 +20,17 @@
 - 런타임 로드 검증 — 내부규정 355기관/35,878건, 단체협약 271/935, 임금협약 279/1,610, 노사협의회 350/7,323.
 - 소요 시간: 내부규정 약 4시간 20분, 보고서형 3종 25분 (concurrency 3).
 
+### Changed
+
+- **버전 트랙 통일** — `package.json` `1.0.8` → **`1.3.1`**. v1.1.0~v1.3.0 은 CHANGELOG 에만 기록되고 npm/git tag 는 1.0.8 에 머물러 두 트랙이 갈라져 있었음. 이번부터 package.json · git tag · npm · CHANGELOG 를 하나의 번호로 맞춤. README/README-EN 헤더도 v1.3.1 로 갱신.
+- **배포 채널 3종 모두 현행화** — 2026-06 이후 코드(보고서형 15개 도구)와 데이터가 Fly.io 원격에만 반영되고 npm/Release 는 5/10 에 멈춰 있던 상태를 해소.
+  | 채널 | 이전 | 이후 |
+  |---|---|---|
+  | Fly.io 원격 (`korean-law-alio-mcp.fly.dev`) | 데이터 9/4, 버전 표시 1.0.8 | 데이터 9/4, **1.3.1** |
+  | GitHub Release `alio-data.tar.gz` (`setup`/`fetch-data` 가 받는 파일) | **5/10, 303MB — 보고서형 3종 데이터 전무** | **9/4, 4개 카테고리 전체** |
+  | npm `korean-law-alio-mcp` | 1.0.8 (도구 110개) | **1.3.1 (도구 125개)** |
+- **Dockerfile / .dockerignore 주석·패턴 정리** — 이미지 크기 주석 ~1.3GB → ~2.4GB, 도구 수 23 → 38 반영. `.dockerignore` 의 `data/sync-state.json` 이 실제 경로 `data/alio/sync-state.json` 과 달라 제외되지 않던 것을 수정.
+
 ### Fixed
 
 - **ZIP 번들 규정 타임아웃 복구** — 한국마사회 `15505 전임직관리지침`, 한국수자원공사 `8030 계약업무규정` 2건이 규정 단위 5분 타임아웃(`ALIO_REG_TIMEOUT_MS` 기본값)을 초과해 수집 실패. `8030` 은 하위 13개 파일이 든 ZIP 번들이라 파싱에 5분 이상 소요. `ALIO_REG_TIMEOUT_MS=1800000` 으로 재수집해 두 건 모두 복구 (하위 파싱 13/13 성공).
